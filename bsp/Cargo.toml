@@ -1,6 +1,6 @@
 [package]
 name        = "hazard3-bsp"
-description = "Startup, RTT console and exit for Hazard3 under veryl-harness"
+description = "Startup, console and exit for Hazard3 under veryl-harness or QEMU"
 
 version.workspace = true
 edition.workspace = true
@@ -11,3 +11,7 @@ riscv      = { version = "0.16.1", features = ["critical-section-single-hart"] }
 riscv-rt   = { version = "0.18.0", features = ["memory", "post-init"] }
 rtt-target = "0.6.2"
 critical-section = "1.2"
+
+[features]
+# Builds for QEMU's `virt` machine instead of the board (`cargo run-emu`).
+qemu = []

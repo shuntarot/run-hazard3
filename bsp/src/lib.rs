@@ -15,36 +15,68 @@
 //! }
 //! ```
 //!
-//! The console is SEGGER RTT in dmem, which the host reads through the
-//! harness window (`hio boot` / `hio console`). It is up before `main`.
+//! On the board the console is SEGGER RTT in dmem, which the host reads
+//! through the harness window (`hio boot` / `hio console`). With the `qemu`
+//! feature (`cargo run-emu`) it is the UART of QEMU's `virt` machine. Either
+//! is up before `main`.
 
 #![no_std]
 
 pub use riscv;
 pub use riscv_rt::entry;
 
+#[cfg(feature = "qemu")]
+mod qemu;
+#[cfg(not(feature = "qemu"))]
 mod rtt;
 
+#[cfg(feature = "qemu")]
+use qemu as console;
+#[cfg(not(feature = "qemu"))]
+use rtt as console;
+
+/// Backend of `print!`. Not meant to be called directly.
 #[doc(hidden)]
-pub use rtt::_print;
+pub fn _print(args: core::fmt::Arguments) {
+    use core::fmt::Write;
+    let _ = Console.write_fmt(args);
+}
+
+struct Console;
+
+impl core::fmt::Write for Console {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        // Both terminals are in raw mode, where a bare LF does not return
+        // the carriage.
+        let mut rest = s;
+        while let Some(i) = rest.find('\n') {
+            console::puts(&rest[..i]);
+            console::puts("\r\n");
+            rest = &rest[i + 1..];
+        }
+        console::puts(rest);
+        Ok(())
+    }
+}
 
 /// Reads one byte the host typed, or `None`. Never blocks.
 pub fn getc() -> Option<u8> {
-    rtt::getc()
+    console::getc()
 }
 
-/// Ends the program with `code`. `hio boot` exits with the same status.
+/// Ends the program with `code`. `hio boot` and QEMU exit with the same
+/// status.
 pub fn exit(code: u8) -> ! {
-    rtt::exit(code);
+    console::exit(code);
     loop {
         riscv::asm::wfi();
     }
 }
 
-/// Sets RTT up before `main`, so a panic in setup still has a console.
+/// Sets the console up before `main`, so a panic in setup still has one.
 #[riscv_rt::post_init]
 unsafe fn post_init(_hartid: usize) {
-    rtt::init();
+    console::init();
 }
 
 #[macro_export]

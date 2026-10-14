@@ -10,3 +10,13 @@ runner = "hio boot"
 [env]
 # The harness this firmware runs on (`veryl harness gen` writes it).
 HIO_REGS = { value = "hns/regs.json", relative = true }
+
+[alias]
+# Runs the same firmware on QEMU's `virt` machine, whose RAM also starts at
+# 0x8000_0000. The console is its UART and the exit status ends QEMU.
+# Ctrl-A x leaves, as with `hio boot`.
+run-emu = [
+  "run",
+  "--features", "hazard3-bsp/qemu",
+  "--config", "target.riscv32imac-unknown-none-elf.runner='qemu-system-riscv32 -machine virt -cpu rv32 -m 128M -nographic -bios none -kernel'",
+]

@@ -12,6 +12,7 @@ Fetches read FPGA memory; loads and stores go to the board's DDR3 through
 - Vivado
 - An Arty A7-35 on USB
 - Rust through rustup, for the firmware (`rust-toolchain.toml` picks the target)
+- `qemu-system-riscv32`, to run the firmware without the board
 
 ## Run
 
@@ -31,6 +32,7 @@ console, and exits with its status; Ctrl-A x leaves.
 ```bash
 cargo run -p hello
 cargo run -p console
+cargo run-emu -p console   # the same on QEMU's virt machine
 ```
 
 ## Files
@@ -41,7 +43,7 @@ cargo run -p console
 | `rtl/hazard3.v` | Hazard3 in one file (`make hazard3`) |
 | `Harness.toml` | where each port goes |
 | `asm/smoke.S` | the test program (`make asm`) |
-| `bsp/` | startup, RTT console and exit for the firmware |
+| `bsp/` | startup, console (RTT, or the UART on QEMU) and exit for the firmware |
 | `apps/` | the firmware: `hello`, `console` |
 | `sim/` | the DUT alone in Verilator (`make sim`) |
 

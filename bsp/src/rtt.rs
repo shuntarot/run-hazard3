@@ -2,7 +2,6 @@
 //! `hio-exit` carries the exit status to `hio boot`.
 
 use core::cell::RefCell;
-use core::fmt::{self, Write as _};
 
 use critical_section::Mutex;
 use rtt_target::{rtt_init, ChannelMode, DownChannel, UpChannel};
@@ -41,22 +40,12 @@ pub(crate) fn init() {
     });
 }
 
-struct Term;
-
-impl fmt::Write for Term {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        critical_section::with(|cs| {
-            if let Some(up) = TERM.borrow(cs).borrow_mut().as_mut() {
-                let _ = up.write_str(s);
-            }
-        });
-        Ok(())
-    }
-}
-
-#[doc(hidden)]
-pub fn _print(args: fmt::Arguments) {
-    let _ = Term.write_fmt(args);
+pub(crate) fn puts(s: &str) {
+    critical_section::with(|cs| {
+        if let Some(up) = TERM.borrow(cs).borrow_mut().as_mut() {
+            up.write(s.as_bytes());
+        }
+    });
 }
 
 pub(crate) fn getc() -> Option<u8> {
