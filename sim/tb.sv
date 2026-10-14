@@ -24,7 +24,10 @@ module tb;
     __std___axi4_if____std___axi4_pkg__32__4__1__1__1__1__1__1 axi ();
 
     run_hazard3_hazard3_top dut (
-        .i_clk(clk), .i_rst(rst_n),
+        .i_clk(clk), .i_rst(rst_n), .i_dm_rst(rst_n),
+        // The Debug Module is left idle.
+        .i_dmi_psel(1'b0), .i_dmi_penable(1'b0), .i_dmi_pwrite(1'b0),
+        .i_dmi_paddr(9'd0), .i_dmi_pwdata(32'd0), .o_dmi_prdata(), .o_dmi_pready(),
         .o_imem_addr(ia), .o_imem_re(ire), .i_imem_rdata(ird),
         .dmem(axi.master)
     );

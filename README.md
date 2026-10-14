@@ -35,12 +35,18 @@ cargo run -p console
 cargo run-emu -p console   # the same on QEMU's virt machine
 ```
 
+The core's Debug Module is reached the same way:
+
+```bash
+hio cpu halt               # also: step, regs, resume, reset --halt, info
+```
+
 ## Files
 
 | | |
 |---|---|
-| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with a fetch port and an AXI4 data port |
-| `rtl/hazard3.v` | Hazard3 in one file (`make hazard3`) |
+| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with a fetch port, an AXI4 data port and its Debug Module |
+| `rtl/hazard3.v` | Hazard3 and its Debug Module in one file (`make hazard3`) |
 | `Harness.toml` | where each port goes |
 | `asm/smoke.S` | the test program (`make asm`) |
 | `bsp/` | startup, console (RTT, or the UART on QEMU) and exit for the firmware |

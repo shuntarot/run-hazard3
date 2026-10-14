@@ -7,4 +7,4 @@ sources    = ["rtl"]
 reset_type = "async_low"
 
 [dependencies]
-hns = { git = "https://github.com/shuntarot/uharness", project = "hns", version = "0.4.0" }
+hns = { git = "https://github.com/shuntarot/uharness", project = "hns", version = "0.5.0" }

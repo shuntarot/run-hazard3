@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Writes Hazard3 as one Verilog file, with every `include expanded.
+"""Writes Hazard3 and its Debug Module as one Verilog file, with every
+`include expanded.
 
 The harness reads the core through `include(inline, ...)` in a Veryl source,
 and synthesis gets no include path, so the include files are pasted in place.
@@ -30,15 +31,22 @@ def expand(path, inc_dir, out):
 
 def main():
     hdl = pathlib.Path(sys.argv[1]).resolve()
-    files = [l.split()[1] for l in (hdl / "hazard3.f").read_text().splitlines()
-             if l.startswith("file ")]
+    # The core, then the Debug Module. The DM's list also names an AHB shim
+    # for system bus access, which hazard3_top does not use.
+    lists = ["hazard3.f", "debug/dm/hazard3_dm.f"]
+    files = []
+    for name in lists:
+        base = (hdl / name).parent
+        files += [base / l.split()[1] for l in (hdl / name).read_text().splitlines()
+                  if l.startswith("file ")]
     rev = subprocess.run(["git", "-C", str(hdl), "rev-parse", "--short", "HEAD"],
                          capture_output=True, text=True).stdout.strip()
-    out = [f"// Hazard3 ({rev}), hdl/hazard3.f with every `include expanded.",
+    out = [f"// Hazard3 ({rev}), {' and '.join('hdl/' + n for n in lists)}"
+           " with every `include expanded.",
            "// Written by scripts/flatten.py. Do not edit."]
     for f in files:
-        out.append(f"// ---- {f}")
-        expand(hdl / f, hdl, out)
+        out.append(f"// ---- {f.relative_to(hdl)}")
+        expand(f, hdl, out)
     print("\n".join(out))
 
 

@@ -10,11 +10,25 @@ include (inline, "hazard3.v");
 /// read `imem`, loads and stores go to `dmem`, and a store to `dmem` is not
 /// seen by fetches.
 ///
-/// Debug, interrupts and power control are not used; they are tied off as in
+/// The Debug Module (`hazard3_dm`) is reached on its DMI, an APB slave the
+/// harness drives. It runs on its own reset, which `hio reset` does not
+/// touch, so a halted hart and a halt-on-reset request survive it. The core
+/// is reset by the DUT reset or by the Debug Module (`ndmreset`), as in
 /// Hazard3's example SoC.
+///
+/// Interrupts and power control are not used; they are tied off.
 module hazard3_top (
-    i_clk: input clock          ,
-    i_rst: input reset_async_low,
+    i_clk   : input clock          ,
+    i_rst   : input reset_async_low,
+    i_dm_rst: input reset_async_low,
+
+    i_dmi_psel   : input  logic    ,
+    i_dmi_penable: input  logic    ,
+    i_dmi_pwrite : input  logic    ,
+    i_dmi_paddr  : input  logic<9> ,
+    i_dmi_pwdata : input  logic<32>,
+    o_dmi_prdata : output logic<32>,
+    o_dmi_pready : output logic    ,
 
     o_imem_addr : output logic<32>,
     o_imem_re   : output logic    ,
@@ -41,13 +55,89 @@ module hazard3_top (
     var pwrup_req  : logic;
     var unblock_out: logic;
 
+    // Between the Debug Module and the core.
+    var sys_reset_req   : logic    ;
+    var hart_reset_req  : logic    ;
+    var req_halt        : logic    ;
+    var req_halt_reset  : logic    ;
+    var req_resume      : logic    ;
+    var halted          : logic    ;
+    var running         : logic    ;
+    var data0_rdata     : logic<32>;
+    var data0_wdata     : logic<32>;
+    var data0_wen       : logic    ;
+    var instr_data      : logic<32>;
+    var instr_data_vld  : logic    ;
+    var instr_data_rdy  : logic    ;
+    var caught_exception: logic    ;
+    var caught_ebreak   : logic    ;
+
+    // The core's reset: the DUT reset, or a reset the Debug Module asks for.
+    // A request is a pulse of at least one cycle, so sampling it is enough.
+    var cpu_rst_meta: logic;
+    var cpu_rst_n   : logic;
+
+    always_ff (i_clk, i_rst) {
+        if_reset {
+            cpu_rst_meta = 0;
+            cpu_rst_n    = 0;
+        } else {
+            cpu_rst_meta = !sys_reset_req && !hart_reset_req;
+            cpu_rst_n    = cpu_rst_meta;
+        }
+    }
+
+    inst u_dm: $sv::hazard3_dm #(
+        N_HARTS     : 1,
+        HAVE_SBA    : 0,
+        NEXT_DM_ADDR: 0,
+    ) (
+        clk                        : i_clk           ,
+        rst_n                      : i_dm_rst        ,
+        dmi_psel                   : i_dmi_psel      ,
+        dmi_penable                : i_dmi_penable   ,
+        dmi_pwrite                 : i_dmi_pwrite    ,
+        dmi_paddr                  : i_dmi_paddr     ,
+        dmi_pwdata                 : i_dmi_pwdata    ,
+        dmi_prdata                 : o_dmi_prdata    ,
+        dmi_pready                 : o_dmi_pready    ,
+        dmi_pslverr                : _               ,
+        sys_reset_req                                ,
+        sys_reset_done             : cpu_rst_n       ,
+        hart_reset_req                               ,
+        hart_reset_done            : cpu_rst_n       ,
+        hart_req_halt              : req_halt        ,
+        hart_req_halt_on_reset     : req_halt_reset  ,
+        hart_req_resume            : req_resume      ,
+        hart_halted                : halted          ,
+        hart_running               : running         ,
+        hart_data0_rdata           : data0_rdata     ,
+        hart_data0_wdata           : data0_wdata     ,
+        hart_data0_wen             : data0_wen       ,
+        hart_instr_data            : instr_data      ,
+        hart_instr_data_vld        : instr_data_vld  ,
+        hart_instr_data_rdy        : instr_data_rdy  ,
+        hart_instr_caught_exception: caught_exception,
+        hart_instr_caught_ebreak   : caught_ebreak   ,
+        sbus_addr                  : _               ,
+        sbus_write                 : _               ,
+        sbus_size                  : _               ,
+        sbus_vld                   : _               ,
+        sbus_rdy                   : '0              ,
+        sbus_err                   : '0              ,
+        sbus_wdata                 : _               ,
+        sbus_rdata                 : '0              ,
+    );
+
     inst u_cpu: $sv::hazard3_cpu_2port #(
-        RESET_VECTOR: BASE,
-        MTVEC_INIT  : BASE,
+        RESET_VECTOR       : BASE,
+        MTVEC_INIT         : BASE,
+        DEBUG_SUPPORT      : 1   ,
+        BREAKPOINT_TRIGGERS: 2   ,
     ) (
         clk          : i_clk      ,
         clk_always_on: i_clk      ,
-        rst_n        : i_rst      ,
+        rst_n        : cpu_rst_n  ,
         pwrup_req                 ,
         pwrup_ack    : pwrup_req  ,
         clk_en       : _          ,
@@ -86,27 +176,27 @@ module hazard3_top (
         fence_d_vld: _ ,
         fence_rdy  : '1,
 
-        dbg_req_halt              : '0,
-        dbg_req_halt_on_reset     : '0,
-        dbg_req_resume            : '0,
-        dbg_halted                : _ ,
-        dbg_running               : _ ,
-        dbg_data0_rdata           : '0,
-        dbg_data0_wdata           : _ ,
-        dbg_data0_wen             : _ ,
-        dbg_instr_data            : '0,
-        dbg_instr_data_vld        : '0,
-        dbg_instr_data_rdy        : _ ,
-        dbg_instr_caught_exception: _ ,
-        dbg_instr_caught_ebreak   : _ ,
-        dbg_sbus_addr             : '0,
-        dbg_sbus_write            : '0,
-        dbg_sbus_size             : '0,
-        dbg_sbus_vld              : '0,
-        dbg_sbus_rdy              : _ ,
-        dbg_sbus_err              : _ ,
-        dbg_sbus_wdata            : '0,
-        dbg_sbus_rdata            : _ ,
+        dbg_req_halt              : req_halt        ,
+        dbg_req_halt_on_reset     : req_halt_reset  ,
+        dbg_req_resume            : req_resume      ,
+        dbg_halted                : halted          ,
+        dbg_running               : running         ,
+        dbg_data0_rdata           : data0_rdata     ,
+        dbg_data0_wdata           : data0_wdata     ,
+        dbg_data0_wen             : data0_wen       ,
+        dbg_instr_data            : instr_data      ,
+        dbg_instr_data_vld        : instr_data_vld  ,
+        dbg_instr_data_rdy        : instr_data_rdy  ,
+        dbg_instr_caught_exception: caught_exception,
+        dbg_instr_caught_ebreak   : caught_ebreak   ,
+        dbg_sbus_addr             : '0              ,
+        dbg_sbus_write            : '0              ,
+        dbg_sbus_size             : '0              ,
+        dbg_sbus_vld              : '0              ,
+        dbg_sbus_rdy              : _               ,
+        dbg_sbus_err              : _               ,
+        dbg_sbus_wdata            : '0              ,
+        dbg_sbus_rdata            : _               ,
 
         mhartid_val: '0,
         eco_version: '0,
