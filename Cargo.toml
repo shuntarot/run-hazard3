@@ -1,5 +1,5 @@
 # Firmware for Hazard3 on the board. `cargo run -p hello` loads it with
-# `hio boot` and stays on its RTT console.
+# `hio cpu boot` and stays on its RTT console.
 [workspace]
 resolver = "2"
 members  = ["bsp", "apps/*"]

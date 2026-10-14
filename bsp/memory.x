@@ -1,7 +1,7 @@
 /* Hazard3 on run-hazard3's harness. Fetches go to imem (64 KB of FPGA
  * memory); loads and stores go to dmem (the board's DRAM). Both start at
- * 0x8000_0000, the reset vector, and `hio boot` loads every segment into each
- * memory that covers it.
+ * 0x8000_0000, the reset vector, and `hio cpu boot` loads every segment into
+ * each memory that covers it.
  *
  * Only code goes into the part both memories cover. Everything the program
  * reads or writes as data sits above it, where only dmem is: imem cannot be

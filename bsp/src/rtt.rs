@@ -1,5 +1,5 @@
 //! The RTT channels: up 0 and down 0 are the terminal, and up 1 named
-//! `hio-exit` carries the exit status to `hio boot`.
+//! `hio-exit` carries the exit status to `hio cpu boot`.
 
 use core::cell::RefCell;
 

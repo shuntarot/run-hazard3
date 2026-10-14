@@ -5,7 +5,7 @@ target = "riscv32imac-unknown-none-elf"
 # riscv-rt's link.x includes memory.x, which bsp/build.rs puts on the path.
 rustflags = ["-C", "link-arg=-Tlink.x"]
 # Loads the ELF into imem and dmem, runs it, and shows its RTT console.
-runner = "hio boot"
+runner = "hio cpu boot"
 
 [env]
 # The harness this firmware runs on (`veryl harness gen` writes it).
@@ -14,7 +14,7 @@ HIO_REGS = { value = "hns/regs.json", relative = true }
 [alias]
 # Runs the same firmware on QEMU's `virt` machine, whose RAM also starts at
 # 0x8000_0000. The console is its UART and the exit status ends QEMU.
-# Ctrl-A x leaves, as with `hio boot`.
+# Ctrl-A x leaves, as with `hio cpu boot`.
 run-emu = [
   "run",
   "--features", "hazard3-bsp/qemu",

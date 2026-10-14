@@ -6,7 +6,7 @@ freq_mhz = 50
 
 # Both memories start at 0x8000_0000, the core's reset vector. The core
 # fetches from imem (64 KB of FPGA memory) and loads/stores to dmem (the
-# board's DRAM). `hio boot` loads each segment into every memory that covers
+# board's DRAM). `hio cpu boot` loads each segment into every memory that covers
 # it, and `dut_base` is how it knows.
 [bundle.imem]
 backing    = "bram_preload"

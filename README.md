@@ -26,7 +26,7 @@ hio run bringup.hio
 `bringup.hio` loads `asm/smoke.elf`, runs it, and reads back what it wrote.
 The expected values are in its comments.
 
-Firmware in Rust runs with cargo. `hio boot` loads it, connects to its RTT
+Firmware in Rust runs with cargo. `hio cpu boot` loads it, connects to its RTT
 console, and exits with its status; Ctrl-A x leaves.
 
 ```bash

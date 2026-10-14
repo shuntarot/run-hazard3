@@ -16,9 +16,9 @@
 //! ```
 //!
 //! On the board the console is SEGGER RTT in dmem, which the host reads
-//! through the harness window (`hio boot` / `hio console`). With the `qemu`
-//! feature (`cargo run-emu`) it is the UART of QEMU's `virt` machine. Either
-//! is up before `main`.
+//! through the harness window (`hio cpu boot` / `hio cpu console`). With the
+//! `qemu` feature (`cargo run-emu`) it is the UART of QEMU's `virt` machine.
+//! Either is up before `main`.
 
 #![no_std]
 
@@ -56,7 +56,7 @@ pub fn getc() -> Option<u8> {
     console::getc()
 }
 
-/// Ends the program with `code`. `hio boot` and QEMU exit with the same
+/// Ends the program with `code`. `hio cpu boot` and QEMU exit with the same
 /// status.
 pub fn exit(code: u8) -> ! {
     console::exit(code);

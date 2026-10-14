@@ -20,7 +20,7 @@ pub(crate) fn init() {}
 pub(crate) fn puts(s: &str) {
     for byte in s.bytes() {
         // QEMU leaves the terminal raw, where a bare LF does not return the
-        // carriage. `hio console` adds the CR itself.
+        // carriage. `hio cpu console` adds the CR itself.
         if byte == b'\n' {
             putc(b'\r');
         }
