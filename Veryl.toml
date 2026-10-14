@@ -3,7 +3,7 @@ name    = "run_hazard3"
 version = "0.1.0"
 
 [build]
-sources    = ["src"]
+sources    = ["rtl"]
 reset_type = "async_low"
 
 [dependencies]

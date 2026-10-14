@@ -21,22 +21,22 @@ hio program
 hio run bringup.hio
 ```
 
-`bringup.hio` loads `sw/smoke.elf`, runs it, and reads back what it wrote.
+`bringup.hio` loads `asm/smoke.elf`, runs it, and reads back what it wrote.
 The expected values are in its comments.
 
 ## Files
 
 | | |
 |---|---|
-| `src/hazard3_top.veryl` | the DUT: Hazard3 with a fetch port and an AXI4 data port |
-| `src/hazard3.v` | Hazard3 in one file (`make hazard3`) |
+| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with a fetch port and an AXI4 data port |
+| `rtl/hazard3.v` | Hazard3 in one file (`make hazard3`) |
 | `Harness.toml` | where each port goes |
-| `sw/smoke.S` | the test program (`make sw`) |
+| `asm/smoke.S` | the test program (`make asm`) |
 | `sim/` | the DUT alone in Verilator (`make sim`) |
 
 Put paths for your machine in `local.mk`; see `Makefile`.
 
 ## License
 
-MIT (`LICENSE`), except Hazard3 in `src/hazard3.v`, which is under the Apache
-License 2.0 (`src/LICENSE.Hazard3`).
+MIT (`LICENSE`), except Hazard3 in `rtl/hazard3.v`, which is under the Apache
+License 2.0 (`rtl/LICENSE.Hazard3`).

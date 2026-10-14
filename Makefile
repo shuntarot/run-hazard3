@@ -1,6 +1,6 @@
-# make hazard3   flatten the Hazard3 sources into src/hazard3.v
-# make sw        build sw/smoke.elf
-# make sim       run sw/smoke.elf on hazard3_top in Verilator (5.x)
+# make hazard3   flatten the Hazard3 sources into rtl/hazard3.v
+# make asm       build asm/smoke.elf
+# make sim       run asm/smoke.elf on hazard3_top in Verilator (5.x)
 #
 # Tool and checkout locations default to PATH and a sibling Hazard3 clone.
 # Put anything specific to your machine in local.mk (not committed):
@@ -12,13 +12,13 @@
 -include local.mk
 HAZARD3 ?= ../Hazard3
 
-.PHONY: hazard3 sw sim
+.PHONY: hazard3 asm sim
 
 hazard3:
-	python3 -I scripts/flatten.py $(HAZARD3)/hdl > src/hazard3.v
+	python3 -I scripts/flatten.py $(HAZARD3)/hdl > rtl/hazard3.v
 
-sw:
-	$(MAKE) -C sw
+asm:
+	$(MAKE) -C asm
 
 sim:
 	$(MAKE) -C sim
