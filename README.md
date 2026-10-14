@@ -1,0 +1,42 @@
+# run-hazard3
+
+Runs the [Hazard3](https://github.com/Wren6991/Hazard3) RISC-V core (RV32IMAC)
+on a Digilent Arty A7-35 with
+[veryl-harness](https://github.com/shuntarot/uharness).
+Fetches read FPGA memory; loads and stores go to the board's DDR3 through
+`hns::ahb2axi`.
+
+## Requirements
+
+- Veryl, with `veryl-harness` and `hio` from veryl-harness
+- Vivado
+- An Arty A7-35 on USB
+
+## Run
+
+```bash
+veryl harness gen --target digilent/arty-a7-35
+make -C hns/syn
+hio program
+hio run bringup.hio
+```
+
+`bringup.hio` loads `sw/smoke.elf`, runs it, and reads back what it wrote.
+The expected values are in its comments.
+
+## Files
+
+| | |
+|---|---|
+| `src/hazard3_top.veryl` | the DUT: Hazard3 with a fetch port and an AXI4 data port |
+| `src/hazard3.v` | Hazard3 in one file (`make hazard3`) |
+| `Harness.toml` | where each port goes |
+| `sw/smoke.S` | the test program (`make sw`) |
+| `sim/` | the DUT alone in Verilator (`make sim`) |
+
+Put paths for your machine in `local.mk`; see `Makefile`.
+
+## License
+
+MIT (`LICENSE`), except Hazard3 in `src/hazard3.v`, which is under the Apache
+License 2.0 (`src/LICENSE.Hazard3`).

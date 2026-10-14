@@ -1,0 +1,139 @@
+// Hazard3, flattened by scripts/flatten.py
+include (inline, "hazard3.v");
+
+/// Runs Hazard3 (`hazard3_cpu_2port`, RV32IMAC) from an FPGA memory and DRAM.
+///
+/// The fetch port becomes a memory port with a read latency of one cycle. The
+/// data port goes through `hns::ahb2axi` to an AXI4 port, which the harness
+/// puts on the board's DRAM. Both cover the same addresses from `BASE`, the core's
+/// reset vector, so load the same program image into both: fetches read
+/// `imem`, loads and stores go to `dmem`. A store to `dmem` is not seen by
+/// fetches.
+///
+/// Debug, interrupts and power control are not used; they are tied off as in
+/// Hazard3's example SoC.
+module hazard3_top (
+    i_clk: input clock          ,
+    i_rst: input reset_async_low,
+
+    o_imem_addr : output logic<32>,
+    o_imem_re   : output logic    ,
+    i_imem_rdata: input  logic<32>,
+
+    // 256 MB from BASE: the address width of the board's DRAM.
+    dmem: modport $std::axi4_if::<$std::axi4_pkg::<28, 4, 1, 1, 1, 1, 1, 1>>::master,
+) {
+    const BASE: bit<32> = 32'h8000_0000;
+
+    var i_haddr : logic<32>;
+    var i_htrans: logic<2> ;
+    var i_hready: logic    ;
+
+    var d_haddr : logic<32>;
+    var d_hwrite: logic    ;
+    var d_htrans: logic<2> ;
+    var d_hsize : logic<3> ;
+    var d_hwdata: logic<32>;
+    var d_hready: logic    ;
+    var d_hrdata: logic<32>;
+
+    var pwrup_req  : logic;
+    var unblock_out: logic;
+
+    inst u_cpu: $sv::hazard3_cpu_2port #(
+        RESET_VECTOR: BASE,
+        MTVEC_INIT  : BASE,
+    ) (
+        clk          : i_clk      ,
+        clk_always_on: i_clk      ,
+        rst_n        : i_rst      ,
+        pwrup_req                 ,
+        pwrup_ack    : pwrup_req  ,
+        clk_en       : _          ,
+        unblock_out               ,
+        unblock_in   : unblock_out,
+
+        i_haddr                  ,
+        i_hwrite   : _           ,
+        i_htrans                 ,
+        i_hsize    : _           ,
+        i_hburst   : _           ,
+        i_hprot    : _           ,
+        i_hmastlock: _           ,
+        i_hmaster  : _           ,
+        i_hready                 ,
+        i_hresp    : '0          ,
+        i_hwdata   : _           ,
+        i_hrdata   : i_imem_rdata,
+
+        d_haddr        ,
+        d_hwrite       ,
+        d_htrans       ,
+        d_hsize        ,
+        d_hburst   : _ ,
+        d_hprot    : _ ,
+        d_hmastlock: _ ,
+        d_hmaster  : _ ,
+        d_hexcl    : _ ,
+        d_hready       ,
+        d_hresp    : '0,
+        d_hexokay  : '1, // a single master: no global monitor
+        d_hwdata       ,
+        d_hrdata       ,
+
+        fence_i_vld: _ ,
+        fence_d_vld: _ ,
+        fence_rdy  : '1,
+
+        dbg_req_halt              : '0,
+        dbg_req_halt_on_reset     : '0,
+        dbg_req_resume            : '0,
+        dbg_halted                : _ ,
+        dbg_running               : _ ,
+        dbg_data0_rdata           : '0,
+        dbg_data0_wdata           : _ ,
+        dbg_data0_wen             : _ ,
+        dbg_instr_data            : '0,
+        dbg_instr_data_vld        : '0,
+        dbg_instr_data_rdy        : _ ,
+        dbg_instr_caught_exception: _ ,
+        dbg_instr_caught_ebreak   : _ ,
+        dbg_sbus_addr             : '0,
+        dbg_sbus_write            : '0,
+        dbg_sbus_size             : '0,
+        dbg_sbus_vld              : '0,
+        dbg_sbus_rdy              : _ ,
+        dbg_sbus_err              : _ ,
+        dbg_sbus_wdata            : '0,
+        dbg_sbus_rdata            : _ ,
+
+        mhartid_val: '0,
+        eco_version: '0,
+        irq        : '0,
+        soft_irq   : '0,
+        timer_irq  : '0,
+    );
+
+    // Fetch only reads, and the memory answers in the data phase, so the
+    // port never waits.
+    always_comb {
+        i_hready    = 1;
+        o_imem_addr = i_haddr - BASE;
+        o_imem_re   = i_htrans[1];
+    }
+
+    inst u_d2axi: hns::ahb2axi::<$std::axi4_pkg::<28, 4, 1, 1, 1, 1, 1, 1>> #(
+        BASE  ,
+    ) (
+        i_clk             ,
+        i_rst             ,
+        i_haddr : d_haddr ,
+        i_hwrite: d_hwrite,
+        i_htrans: d_htrans,
+        i_hsize : d_hsize ,
+        i_hwdata: d_hwdata,
+        o_hready: d_hready,
+        o_hrdata: d_hrdata,
+        axi     : dmem    ,
+    );
+}

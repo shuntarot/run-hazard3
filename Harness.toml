@@ -1,0 +1,20 @@
+[dut]
+module = "hazard3_top"
+
+[clock.i_clk]
+freq_mhz = 50
+
+# Both memories start at 0x8000_0000, the core's reset vector. Load the same
+# image into both: the core fetches from imem (64 KB of FPGA memory) and
+# loads/stores to dmem (the board's DRAM).
+[bundle.imem]
+backing    = "bram_preload"
+latency    = 1
+depth      = 16384
+addressing = "byte"
+ports      = { addr = "o_imem_addr", re = "o_imem_re", rdata = "i_imem_rdata" }
+
+[bundle.dmem]
+backing  = "dram"
+aperture = "1M"
+ports    = ["dmem"]
