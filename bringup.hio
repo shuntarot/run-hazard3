@@ -11,8 +11,8 @@ read dmem_calib
 
 echo == load the program while the core is held ==
 reset --hold
-load imem asm/smoke.elf --base 0x80000000 --verify
-load dmem asm/smoke.elf --base 0x80000000 --verify
+load imem asm/smoke.elf --verify
+load dmem asm/smoke.elf --verify
 write dmem 0x1000 0 0 0 0 0 0 0 0 0 0 0 0
 reset --release
 sleep 100

@@ -16,3 +16,6 @@
 
 # Paths for this machine (see Makefile)
 /local.mk
+
+# cargo
+/target/

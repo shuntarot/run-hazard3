@@ -1,0 +1,12 @@
+[build]
+target = "riscv32imac-unknown-none-elf"
+
+[target.riscv32imac-unknown-none-elf]
+# riscv-rt's link.x includes memory.x, which bsp/build.rs puts on the path.
+rustflags = ["-C", "link-arg=-Tlink.x"]
+# Loads the ELF into imem and dmem, runs it, and shows its RTT console.
+runner = "hio boot"
+
+[env]
+# The harness this firmware runs on (`veryl harness gen` writes it).
+HIO_REGS = { value = "hns/regs.json", relative = true }

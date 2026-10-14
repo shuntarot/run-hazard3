@@ -1,5 +1,5 @@
-// Runs sw/smoke.elf on hazard3_top. imem behaves like the harness's FPGA
-// memory: one cycle, byte addressed, nothing past 64 KB. dmem is an AXI4
+// Runs asm/smoke.elf on hazard3_top. imem behaves like the harness's FPGA
+// memory: one cycle, byte addressed, 64 KB from BASE. dmem is an AXI4
 // memory whose channels stall for a varying number of cycles, the way DRAM
 // behind a clock crossing does. Veryl's own simulator cannot run Hazard3 (it
 // is Verilog), so this uses Verilator.
@@ -9,6 +9,7 @@ module tb;
 
     logic [31:0] ia, ird;
     logic        ire;
+    localparam logic [31:0] BASE = 32'h8000_0000;  // dut_base in Harness.toml
     logic [31:0] imem [0:16383];
     logic [31:0] dmem [0:16383];
     logic [31:0] want [0:10];
@@ -20,7 +21,7 @@ module tb;
 
     assign rst_n = cycle >= 5;
 
-    __std___axi4_if____std___axi4_pkg__28__4__1__1__1__1__1__1 axi ();
+    __std___axi4_if____std___axi4_pkg__32__4__1__1__1__1__1__1 axi ();
 
     run_hazard3_hazard3_top dut (
         .i_clk(clk), .i_rst(rst_n),
@@ -34,7 +35,7 @@ module tb;
     always @(posedge clk) lfsr <= {lfsr[14:0], lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10]};
 
     logic        aw_got, w_got, ar_got;
-    logic [27:0] aw_addr, ar_addr;
+    logic [31:0] aw_addr, ar_addr;  // offsets from BASE, as the harness makes them
     logic [31:0] w_data;
     logic [3:0]  w_strb;
     logic [2:0]  r_wait, b_wait;
@@ -68,7 +69,7 @@ module tb;
         end else begin
             if (axi.awvalid && axi.awready) begin
                 aw_got  <= 1;
-                aw_addr <= axi.awaddr;
+                aw_addr <= axi.awaddr - BASE;
                 b_wait  <= lfsr[5:3];
                 if (odd(axi.awsize, axi.awlen, axi.awaddr[1:0])) bad = bad + 1;
             end
@@ -80,7 +81,7 @@ module tb;
             end
             if (axi.arvalid && axi.arready) begin
                 ar_got  <= 1;
-                ar_addr <= axi.araddr;
+                ar_addr <= axi.araddr - BASE;
                 r_wait  <= lfsr[8:6];
                 if (odd(axi.arsize, axi.arlen, axi.araddr[1:0])) bad = bad + 1;
             end
@@ -126,8 +127,8 @@ module tb;
     always @(posedge clk) begin
         cycle <= cycle + 1;
         if (rst_n && !dut.d_hready) stalls <= stalls + 1;
-        if (rst_n && ire && ia >= 65536) oor <= oor + 1;
-        if (ire) ird <= ia < 65536 ? imem[ia[15:2]] : 0;
+        if (rst_n && ire && ia - BASE >= 65536) oor <= oor + 1;
+        if (ire) ird <= ia - BASE < 65536 ? imem[ia[15:2]] : 0;
     end
 
     always @(posedge clk) begin

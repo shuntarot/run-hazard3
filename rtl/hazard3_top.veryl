@@ -5,10 +5,10 @@ include (inline, "hazard3.v");
 ///
 /// The fetch port becomes a memory port with a read latency of one cycle. The
 /// data port goes through `hns::ahb2axi` to an AXI4 port, which the harness
-/// puts on the board's DRAM. Both cover the same addresses from `BASE`, the core's
-/// reset vector, so load the same program image into both: fetches read
-/// `imem`, loads and stores go to `dmem`. A store to `dmem` is not seen by
-/// fetches.
+/// puts on the board's DRAM. Both carry the core's own addresses; `dut_base`
+/// in Harness.toml places both memories at `BASE`, the reset vector. Fetches
+/// read `imem`, loads and stores go to `dmem`, and a store to `dmem` is not
+/// seen by fetches.
 ///
 /// Debug, interrupts and power control are not used; they are tied off as in
 /// Hazard3's example SoC.
@@ -20,8 +20,9 @@ module hazard3_top (
     o_imem_re   : output logic    ,
     i_imem_rdata: input  logic<32>,
 
-    // 256 MB from BASE: the address width of the board's DRAM.
-    dmem: modport $std::axi4_if::<$std::axi4_pkg::<28, 4, 1, 1, 1, 1, 1, 1>>::master,
+    // The core's own addresses. `dut_base` in Harness.toml places the DRAM
+    // at BASE, and the harness refuses what falls outside it.
+    dmem: modport $std::axi4_if::<$std::axi4_pkg::<32, 4, 1, 1, 1, 1, 1, 1>>::master,
 ) {
     const BASE: bit<32> = 32'h8000_0000;
 
@@ -118,13 +119,11 @@ module hazard3_top (
     // port never waits.
     always_comb {
         i_hready    = 1;
-        o_imem_addr = i_haddr - BASE;
+        o_imem_addr = i_haddr;
         o_imem_re   = i_htrans[1];
     }
 
-    inst u_d2axi: hns::ahb2axi::<$std::axi4_pkg::<28, 4, 1, 1, 1, 1, 1, 1>> #(
-        BASE  ,
-    ) (
+    inst u_d2axi: hns::ahb2axi::<$std::axi4_pkg::<32, 4, 1, 1, 1, 1, 1, 1>> (
         i_clk             ,
         i_rst             ,
         i_haddr : d_haddr ,

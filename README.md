@@ -11,6 +11,7 @@ Fetches read FPGA memory; loads and stores go to the board's DDR3 through
 - Veryl, with `veryl-harness` and `hio` from veryl-harness
 - Vivado
 - An Arty A7-35 on USB
+- Rust through rustup, for the firmware (`rust-toolchain.toml` picks the target)
 
 ## Run
 
@@ -24,6 +25,14 @@ hio run bringup.hio
 `bringup.hio` loads `asm/smoke.elf`, runs it, and reads back what it wrote.
 The expected values are in its comments.
 
+Firmware in Rust runs with cargo. `hio boot` loads it, connects to its RTT
+console, and exits with its status; Ctrl-A x leaves.
+
+```bash
+cargo run -p hello
+cargo run -p console
+```
+
 ## Files
 
 | | |
@@ -32,6 +41,8 @@ The expected values are in its comments.
 | `rtl/hazard3.v` | Hazard3 in one file (`make hazard3`) |
 | `Harness.toml` | where each port goes |
 | `asm/smoke.S` | the test program (`make asm`) |
+| `bsp/` | startup, RTT console and exit for the firmware |
+| `apps/` | the firmware: `hello`, `console` |
 | `sim/` | the DUT alone in Verilator (`make sim`) |
 
 Put paths for your machine in `local.mk`; see `Makefile`.
