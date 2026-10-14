@@ -19,16 +19,25 @@ pub(crate) fn init() {}
 
 pub(crate) fn puts(s: &str) {
     for byte in s.bytes() {
-        // SAFETY: the 16550 of `virt`; nothing else drives it.
-        unsafe {
-            while read_volatile(LSR) & LSR_EMPTY == 0 {}
-            write_volatile(THR, byte);
+        // QEMU leaves the terminal raw, where a bare LF does not return the
+        // carriage. `hio console` adds the CR itself.
+        if byte == b'\n' {
+            putc(b'\r');
         }
+        putc(byte);
+    }
+}
+
+fn putc(byte: u8) {
+    // SAFETY: the 16550 of `virt`; nothing else drives it.
+    unsafe {
+        while read_volatile(LSR) & LSR_EMPTY == 0 {}
+        write_volatile(THR, byte);
     }
 }
 
 pub(crate) fn getc() -> Option<u8> {
-    // SAFETY: as in `puts`.
+    // SAFETY: as in `putc`.
     unsafe { (read_volatile(LSR) & LSR_DATA != 0).then(|| read_volatile(RBR)) }
 }
 

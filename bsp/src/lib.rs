@@ -46,15 +46,7 @@ struct Console;
 
 impl core::fmt::Write for Console {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        // Both terminals are in raw mode, where a bare LF does not return
-        // the carriage.
-        let mut rest = s;
-        while let Some(i) = rest.find('\n') {
-            console::puts(&rest[..i]);
-            console::puts("\r\n");
-            rest = &rest[i + 1..];
-        }
-        console::puts(rest);
+        console::puts(s);
         Ok(())
     }
 }
