@@ -18,5 +18,5 @@ HIO_REGS = { value = "hns/regs.json", relative = true }
 run-emu = [
   "run",
   "--features", "hazard3-bsp/qemu",
-  "--config", "target.riscv32imac-unknown-none-elf.runner='qemu-system-riscv32 -machine virt -cpu rv32 -m 128M -nographic -bios none -kernel'",
+  "--config", "target.riscv32imac-unknown-none-elf.runner='qemu-system-riscv32 -machine virt -cpu rv32 -m 128M -nographic -bios none -semihosting-config enable=on,target=native -kernel'",
 ]

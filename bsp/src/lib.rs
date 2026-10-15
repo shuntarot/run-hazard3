@@ -25,6 +25,8 @@
 pub use riscv;
 pub use riscv_rt::entry;
 
+pub mod semihosting;
+
 #[cfg(feature = "qemu")]
 mod qemu;
 #[cfg(not(feature = "qemu"))]

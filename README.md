@@ -33,6 +33,7 @@ console, and exits with its status; Ctrl-A x leaves.
 cargo run -p hello
 cargo run -p console
 cargo run-emu -p console   # the same on QEMU's virt machine
+cargo run -p semihost      # prints by semihosting; also under run-emu
 ```
 
 The core's Debug Module is reached the same way:
@@ -50,7 +51,7 @@ hio cpu halt               # also: step, regs, resume, reset --halt, info
 | `Harness.toml` | where each port goes |
 | `asm/smoke.S` | the test program (`make asm`) |
 | `bsp/` | startup, console (RTT, or the UART on QEMU) and exit for the firmware |
-| `apps/` | the firmware: `hello`, `console` |
+| `apps/` | the firmware: `hello`, `console`, `semihost` |
 | `sim/` | the DUT alone in Verilator (`make sim`) |
 
 Put paths for your machine in `local.mk`; see `Makefile`.
