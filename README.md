@@ -27,7 +27,9 @@ hio run bringup.hio
 The expected values are in its comments.
 
 Firmware in Rust runs with cargo. `hio cpu boot` loads it, connects to its RTT
-console, and exits with its status; Ctrl-A x leaves.
+console, and exits with its status; Ctrl-A x leaves. If `veryl harness gen`
+wrote somewhere other than `hns/` (`--out-dir`), change the path of
+`HIO_REGS` under `[env]` in `.cargo/config.toml` to match.
 
 ```bash
 cargo run -p hello
