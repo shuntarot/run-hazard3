@@ -44,6 +44,17 @@ The core's Debug Module is reached the same way:
 hio cpu halt               # also: step, regs, resume, reset --halt, info
 ```
 
+## Size
+
+LUT and FF counts, block RAM in 36 Kb blocks, after place and route. The
+core is the DUT alone; the design adds the harness and the memory behind it
+(block RAM, or the board's memory controller).
+
+| Target | Clock | Core LUT / FF / BRAM / DSP | Design LUT / FF / BRAM / DSP |
+|---|---|---|---|
+| `digilent/arty-a7-35` | 50 MHz | 2,509 / 900 / 1 / 0 | 8,851 / 6,526 / 17 / 0 |
+| `xilinx/vcu118` | 50 MHz | 2,567 / 964 / 0 / 0 | 21,015 / 22,670 / 41.5 / 3 |
+
 ## Files
 
 | | |
