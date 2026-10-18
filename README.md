@@ -58,11 +58,13 @@ hio cpu halt               # also: step, regs, resume, reset --halt, info
 
 LUT and FF counts, block RAM in 36 Kb blocks, after place and route. The
 core is the DUT alone; the design adds the harness and the memory behind it
-(block RAM, or the board's memory controller).
+(block RAM, or the board's memory controller; the PYNQ-Z1's is hard silicon
+in its PS and is not counted).
 
 | Target | Clock | Core LUT / FF / BRAM / DSP | Design LUT / FF / BRAM / DSP |
 |---|---|---|---|
 | `digilent/arty-a7-35` | 50 MHz | 2,509 / 900 / 1 / 0 | 8,851 / 6,526 / 17 / 0 |
+| `digilent/pynq-z1` | 50 MHz | 2,583 / 900 / 1 / 0 | 3,544 / 2,044 / 17 / 0 |
 | `xilinx/vcu118` | 50 MHz | 2,567 / 964 / 0 / 0 | 21,015 / 22,670 / 41.5 / 3 |
 
 ## Files
