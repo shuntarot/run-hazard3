@@ -54,6 +54,9 @@ The core's Debug Module is reached the same way:
 hio cpu halt               # also: step, regs, resume, reset --halt, info
 ```
 
+The console has a debug prompt as well (Ctrl-A c); `doc/debug.md` walks
+through a session.
+
 ## Size
 
 LUT and FF counts, block RAM in 36 Kb blocks, after place and route. The
