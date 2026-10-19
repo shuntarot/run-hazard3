@@ -17,7 +17,7 @@ The keys:
 $ cargo run -p console
      Running `hio cpu boot target/riscv32imac-unknown-none-elf/debug/console`
 ok: the DUT is held in reset. Release it with: hio reset --release
-  0x0080000000 -> imem, dmem  7190 bytes
+  0x0080000000 -> tcm  7190 bytes
   0x0080010000 -> dmem  2844 bytes
   0x0080010b1c -> dmem  4 bytes
 ok: the DUT is running
@@ -116,14 +116,14 @@ harness registers and memories:
 ```console
 (hio cpu) hio
 (hio) dump
-0x0000  imem              region, 64k (16k x 4 bytes) -- `hio read imem 0x0 8`
+0x0000  tcm               region, 64k (16k x 4 bytes) -- `hio read tcm 0x0 8`
 0x100000  dmem              region, 256M (64M x 4 bytes) -- `hio read dmem 0x0 8`
 0x10000  dmi               region, 512 (128 x 4 bytes) -- `hio read dmi 0x0 8`
 
 0x200000  dmem_base_jtag    0x00000000
 0x200004  dmem_base_pcie    0x00000000
-0x200008  imem_depth        0x00004000  (16k entries)
-0x20000c  imem_oor          0x00000000
+0x200008  tcm_depth         0x00004000  (16k entries)
+0x20000c  tcm_oor           0x00000000
 0x200010  dmem_calib        0x00000001
 0x200014  dmem_depth        0x04000000  (64M entries)
 0x200018  dmem_oor          0x00000000
@@ -131,7 +131,7 @@ harness registers and memories:
 0x200020  dut_reset_state   0x00000000
 0x3ffff4  harness_timeout   0x00000000
 0x3ffff8  harness_magic     0x5648524e
-0x3ffffc  harness_map_hash  0x24bfba5f
+0x3ffffc  harness_map_hash  0xeeff33af
 (hio)
 ```
 

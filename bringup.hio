@@ -1,7 +1,7 @@
 # hazard3 -- hio run bringup.hio
 #
-# Hold the core in reset, put asm/smoke.elf in both memories, release it, and
-# read what it wrote to dmem (DRAM) at 0x8000_1000.
+# Hold the core in reset, put asm/smoke.elf in tcm, release it, and read what
+# it wrote at 0x8000_1000 (tcm) and 0x8001_0000 (dmem, the DRAM).
 
 echo == identity ==
 id
@@ -11,25 +11,31 @@ read dmem_calib
 
 echo == load the program while the core is held ==
 reset --hold
-load imem asm/smoke.elf --verify
-load dmem asm/smoke.elf --verify
-write dmem 0x1000 0 0 0 0 0 0 0 0 0 0 0 0
+load tcm asm/smoke.elf --verify
+write tcm 0x1000 0 0 0 0 0 0 0 0 0 0 0 0 0
+write dmem 0x0 0
 reset --release
 sleep 100
 
 echo == what the core wrote ==
 # 0x21534e48 ("HNS!"), misa 0x40801105 (RV32IMAC and X), mhartid 0
-read dmem 0x1000 3
-# 0xc0ffee42 (loaded from dmem), 0x000f45f6 (mul/divu), 0x44332211 (byte stores)
-read dmem 0x100c 3
+read tcm 0x1000 3
+# 0xc0ffee42 (loaded from .rodata), 0x000f45f6 (mul/divu), 0x44332211 (byte stores)
+read tcm 0x100c 3
 # 0x66665555 (halfword stores), 0x0000002a and 0x00000025 (amoadd.w: new, old)
-read dmem 0x1018 3
+read tcm 0x1018 3
 # 0x12345678 twice (a store read back by the very next load)
-read dmem 0x1024 2
+read tcm 0x1024 2
 # counter: must differ between the two reads
-read dmem 0x102c 1
+read tcm 0x102c 1
 sleep 100
-read dmem 0x102c 1
+read tcm 0x102c 1
 
-echo == no fetch out of range ==
-read imem_oor
+echo == through the DRAM ==
+# 0xfeedface, stored to 0x8001_0000 and loaded back; then the same word in dmem
+read tcm 0x1030 1
+read dmem 0x0 1
+
+echo == nothing out of range ==
+read tcm_oor
+read dmem_oor

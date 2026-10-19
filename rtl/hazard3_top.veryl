@@ -1,15 +1,14 @@
 // Hazard3, flattened by scripts/flatten.py
 include (inline, "hazard3.v");
 
-/// Runs Hazard3 (`hazard3_cpu_2port`, RV32IMAC, with Zbb and the cycle and
-/// instret counters) from an FPGA memory and DRAM.
+/// Runs Hazard3 (`hazard3_cpu_1port`, RV32IMAC, with Zbb, Zifencei and the
+/// cycle and instret counters) from an FPGA memory and DRAM.
 ///
-/// The fetch port becomes a memory port with a read latency of one cycle. The
-/// data port goes through `hns::ahb2axi` to an AXI4 port, which the harness
-/// puts on the board's DRAM. Both carry the core's own addresses; `dut_base`
-/// in Harness.toml places both memories at `BASE`, the reset vector. Fetches
-/// read `imem`, loads and stores go to `dmem`, and a store to `dmem` is not
-/// seen by fetches.
+/// The core has one AHB port for fetches, loads and stores. Its addresses are
+/// split: the 64 KB from `BASE` (the reset vector) go to a block RAM port
+/// with a read latency of one cycle (`tcm`), and everything above goes through
+/// `hns::ahb2axi` to an AXI4 port on the board's DRAM (`dmem`). Each address
+/// is in one memory only, so a store is seen by fetches.
 ///
 /// The Debug Module (`hazard3_dm`) is reached on its DMI, an APB slave the
 /// harness drives. It runs on its own reset, which `hio reset` does not
@@ -31,25 +30,31 @@ module hazard3_top (
     o_dmi_prdata : output logic<32>,
     o_dmi_pready : output logic    ,
 
-    o_imem_addr : output logic<32>,
-    o_imem_re   : output logic    ,
-    i_imem_rdata: input  logic<32>,
+    o_tcm_addr : output logic<32>,
+    o_tcm_re   : output logic    ,
+    o_tcm_we   : output logic    ,
+    o_tcm_wstrb: output logic<4> ,
+    o_tcm_wdata: output logic<32>,
+    i_tcm_rdata: input  logic<32>,
 
     // The core's own addresses. `dut_base` in Harness.toml places the DRAM
-    // at BASE, and the harness refuses what falls outside it.
+    // at TCM_END, and the harness refuses what falls outside it.
     dmem: modport $std::axi4_if::<$std::axi4_pkg::<32, 4, 1, 1, 1, 1, 1, 1>>::master,
 ) {
-    const BASE: bit<32> = 32'h8000_0000;
+    const BASE   : bit<32> = 32'h8000_0000;
+    const TCM_END: bit<32> = 32'h8001_0000;
 
-    var i_haddr : logic<32>;
-    var i_htrans: logic<2> ;
-    var i_hready: logic    ;
+    // The core's AHB port.
+    var haddr : logic<32>;
+    var hwrite: logic    ;
+    var htrans: logic<2> ;
+    var hsize : logic<3> ;
+    var hwdata: logic<32>;
+    var hready: logic    ;
+    var hrdata: logic<32>;
 
-    var d_haddr : logic<32>;
-    var d_hwrite: logic    ;
+    // The DRAM side of the split.
     var d_htrans: logic<2> ;
-    var d_hsize : logic<3> ;
-    var d_hwdata: logic<32>;
     var d_hready: logic    ;
     var d_hrdata: logic<32>;
 
@@ -130,13 +135,14 @@ module hazard3_top (
         sbus_rdata                 : '0              ,
     );
 
-    inst u_cpu: $sv::hazard3_cpu_2port #(
+    inst u_cpu: $sv::hazard3_cpu_1port #(
         RESET_VECTOR       : BASE,
         MTVEC_INIT         : BASE,
         DEBUG_SUPPORT      : 1   ,
         BREAKPOINT_TRIGGERS: 2   ,
         CSR_COUNTER        : 1   ,
         EXTENSION_ZBB      : 1   ,
+        EXTENSION_ZIFENCEI : 1   ,
     ) (
         clk          : i_clk      ,
         clk_always_on: i_clk      ,
@@ -147,33 +153,20 @@ module hazard3_top (
         unblock_out               ,
         unblock_in   : unblock_out,
 
-        i_haddr                  ,
-        i_hwrite   : _           ,
-        i_htrans                 ,
-        i_hsize    : _           ,
-        i_hburst   : _           ,
-        i_hprot    : _           ,
-        i_hmastlock: _           ,
-        i_hmaster  : _           ,
-        i_hready                 ,
-        i_hresp    : '0          ,
-        i_hwdata   : _           ,
-        i_hrdata   : i_imem_rdata,
-
-        d_haddr        ,
-        d_hwrite       ,
-        d_htrans       ,
-        d_hsize        ,
-        d_hburst   : _ ,
-        d_hprot    : _ ,
-        d_hmastlock: _ ,
-        d_hmaster  : _ ,
-        d_hexcl    : _ ,
-        d_hready       ,
-        d_hresp    : '0,
-        d_hexokay  : '1, // a single master: no global monitor
-        d_hwdata       ,
-        d_hrdata       ,
+        haddr          ,
+        hwrite         ,
+        htrans         ,
+        hsize          ,
+        hburst     : _ ,
+        hprot      : _ ,
+        hmastlock  : _ ,
+        hmaster    : _ ,
+        hexcl      : _ ,
+        hready         ,
+        hresp      : '0,
+        hexokay    : '1, // a single master: no global monitor
+        hwdata         ,
+        hrdata         ,
 
         fence_i_vld: _ ,
         fence_d_vld: _ ,
@@ -208,22 +201,74 @@ module hazard3_top (
         timer_irq  : '0,
     );
 
-    // Fetch only reads, and the memory answers in the data phase, so the
-    // port never waits.
+    // The split. `t_` is the block RAM side. A read there answers in its
+    // data phase, the cycle after the address. A write takes its data in the
+    // data phase and writes then; a block RAM read whose address comes in that
+    // same cycle waits one cycle, since the port has one address.
+    var t_sel    : logic    ; // the address phase is for the block RAM
+    var accept   : logic    ; // an address phase is taken this cycle
+    var t_data   : logic    ; // the data phase is the block RAM's
+    var t_wr     : logic    ; // ... and is a write
+    var t_written: logic    ; // ... already written, while a read waits
+    var t_waddr  : logic<32>;
+    var t_wstrb  : logic<4> ;
+    var t_ready  : logic    ;
+    var t_writing: logic    ;
+
     always_comb {
-        i_hready    = 1;
-        o_imem_addr = i_haddr;
-        o_imem_re   = i_htrans[1];
+        t_sel     = haddr >= BASE && haddr <: TCM_END;
+        t_writing = t_data && t_wr && !t_written;
+        t_ready   = !(t_writing && htrans[1] && !hwrite && t_sel);
+        hready    = if t_data ? t_ready : d_hready;
+        hrdata    = if t_data ? i_tcm_rdata : d_hrdata;
+        accept    = hready && htrans[1];
+
+        o_tcm_we    = t_writing;
+        o_tcm_wstrb = t_wstrb;
+        o_tcm_wdata = hwdata;
+        o_tcm_re    = !t_writing && accept && t_sel && !hwrite;
+        o_tcm_addr  = if t_writing ? t_waddr : haddr;
+
+        d_htrans = if accept && !t_sel ? htrans : 2'b00;
+    }
+
+    always_ff (i_clk, i_rst) {
+        if_reset {
+            t_data    = 0;
+            t_wr      = 0;
+            t_written = 0;
+            t_waddr   = 0;
+            t_wstrb   = 0;
+        } else if hready {
+            t_data    = accept && t_sel;
+            t_wr      = hwrite;
+            t_written = 0;
+            t_waddr   = haddr;
+            t_wstrb   = strobe(hsize, haddr[1:0]);
+        } else if t_writing {
+            t_written = 1;
+        }
+    }
+
+    function strobe (
+        size: input logic<3>,
+        addr: input logic<2>,
+    ) -> logic<4> {
+        case size {
+            0      : return 4'b0001 << addr;
+            1      : return 4'b0011 << {addr[1], 1'b0};
+            default: return 4'b1111;
+        }
     }
 
     inst u_d2axi: hns::ahb2axi::<$std::axi4_pkg::<32, 4, 1, 1, 1, 1, 1, 1>> (
         i_clk             ,
         i_rst             ,
-        i_haddr : d_haddr ,
-        i_hwrite: d_hwrite,
+        i_haddr : haddr   ,
+        i_hwrite: hwrite  ,
         i_htrans: d_htrans,
-        i_hsize : d_hsize ,
-        i_hwdata: d_hwdata,
+        i_hsize : hsize   ,
+        i_hwdata: hwdata  ,
         o_hready: d_hready,
         o_hrdata: d_hrdata,
         axi     : dmem    ,

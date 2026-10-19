@@ -1,10 +1,11 @@
 # run-hazard3
 
 Runs the [Hazard3](https://github.com/Wren6991/Hazard3) RISC-V core (RV32IMAC,
-with Zbb and the counters) on a Digilent Arty A7-35 with
+with Zbb, Zifencei and the counters) on a Digilent Arty A7-35 with
 [veryl-harness](https://github.com/shuntarot/uharness).
-Fetches read FPGA memory; loads and stores go to the board's DDR3 through
-`hns::ahb2axi`.
+The core's single bus port sees one address space: 64 KB of FPGA memory
+from 0x8000_0000 (`tcm`), and the board's DDR3 right after it (`dmem`, through
+`hns::ahb2axi`).
 
 ## Requirements
 
@@ -47,8 +48,7 @@ scripts/riscv-tests.sh -o results.txt <isa dir> 'rv32ui-p-*'   # or name them
 ```
 
 The tests must be built for RV32 (`./configure --with-xlen=32` in riscv-tests).
-On the Arty A7-35, 92 of the 95 pass. Three fail by design of this setup:
-`rv32ui-p-fence_i` (fetches and data use separate memories),
+On the Arty A7-35, 93 of the 95 pass. Two fail by design of this setup:
 `rv32ui-p-ma_data` (no misaligned access) and `rv32mi-p-pmpaddr` (no PMP).
 
 The core's Debug Module is reached the same way:
@@ -69,15 +69,15 @@ in its PS and is not counted).
 
 | Target | Clock | Core LUT / FF / BRAM / DSP | Design LUT / FF / BRAM / DSP |
 |---|---|---|---|
-| `digilent/arty-a7-35` | 50 MHz | 3,088 / 1,030 / 1 / 0 | 9,436 / 6,656 / 17 / 0 |
-| `digilent/pynq-z1` | 50 MHz | 3,199 / 1,030 / 1 / 0 | 4,158 / 2,174 / 17 / 0 |
-| `xilinx/vcu118` | 50 MHz | 3,204 / 1,094 / 0 / 0 | 22,543 / 23,387 / 41.5 / 3 |
+| `digilent/arty-a7-35` | 50 MHz | 3,153 / 1,069 / 1 / 0 | 9,515 / 6,695 / 17 / 0 |
+| `digilent/pynq-z1` | 50 MHz | 3,246 / 1,069 / 1 / 0 | 4,171 / 2,213 / 17 / 0 |
+| `xilinx/vcu118` | 50 MHz | 3,329 / 1,133 / 0 / 0 | 22,674 / 23,417 / 41.5 / 3 |
 
 ## Files
 
 | | |
 |---|---|
-| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with a fetch port, an AXI4 data port and its Debug Module |
+| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with one bus port split into a memory port and an AXI4 port, and its Debug Module |
 | `rtl/hazard3.v` | Hazard3 and its Debug Module in one file (`make hazard3`) |
 | `Harness.toml` | where each port goes |
 | `asm/smoke.S` | the test program (`make asm`) |
