@@ -1,7 +1,8 @@
 // Hazard3, flattened by scripts/flatten.py
 include (inline, "hazard3.v");
 
-/// Runs Hazard3 (`hazard3_cpu_2port`, RV32IMAC) from an FPGA memory and DRAM.
+/// Runs Hazard3 (`hazard3_cpu_2port`, RV32IMAC, with Zbb and the cycle and
+/// instret counters) from an FPGA memory and DRAM.
 ///
 /// The fetch port becomes a memory port with a read latency of one cycle. The
 /// data port goes through `hns::ahb2axi` to an AXI4 port, which the harness
@@ -134,6 +135,8 @@ module hazard3_top (
         MTVEC_INIT         : BASE,
         DEBUG_SUPPORT      : 1   ,
         BREAKPOINT_TRIGGERS: 2   ,
+        CSR_COUNTER        : 1   ,
+        EXTENSION_ZBB      : 1   ,
     ) (
         clk          : i_clk      ,
         clk_always_on: i_clk      ,

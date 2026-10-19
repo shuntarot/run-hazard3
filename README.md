@@ -1,7 +1,7 @@
 # run-hazard3
 
-Runs the [Hazard3](https://github.com/Wren6991/Hazard3) RISC-V core (RV32IMAC)
-on a Digilent Arty A7-35 with
+Runs the [Hazard3](https://github.com/Wren6991/Hazard3) RISC-V core (RV32IMAC,
+with Zbb and the counters) on a Digilent Arty A7-35 with
 [veryl-harness](https://github.com/shuntarot/uharness).
 Fetches read FPGA memory; loads and stores go to the board's DDR3 through
 `hns::ahb2axi`.
@@ -54,8 +54,8 @@ The core's Debug Module is reached the same way:
 hio cpu halt               # also: step, regs, resume, reset --halt, info
 ```
 
-The console has a debug prompt as well (Ctrl-A c); `doc/debug.md` walks
-through a session.
+The console has a debug prompt as well (Ctrl-A c); [doc/debug.md](doc/debug.md)
+walks through a session.
 
 ## Size
 
@@ -66,9 +66,9 @@ in its PS and is not counted).
 
 | Target | Clock | Core LUT / FF / BRAM / DSP | Design LUT / FF / BRAM / DSP |
 |---|---|---|---|
-| `digilent/arty-a7-35` | 50 MHz | 2,509 / 900 / 1 / 0 | 8,851 / 6,526 / 17 / 0 |
-| `digilent/pynq-z1` | 50 MHz | 2,583 / 900 / 1 / 0 | 3,544 / 2,044 / 17 / 0 |
-| `xilinx/vcu118` | 50 MHz | 2,567 / 964 / 0 / 0 | 21,015 / 22,670 / 41.5 / 3 |
+| `digilent/arty-a7-35` | 50 MHz | 3,088 / 1,030 / 1 / 0 | 9,436 / 6,656 / 17 / 0 |
+| `digilent/pynq-z1` | 50 MHz | 3,199 / 1,030 / 1 / 0 | 4,158 / 2,174 / 17 / 0 |
+| `xilinx/vcu118` | 50 MHz | 3,204 / 1,094 / 0 / 0 | 22,543 / 23,387 / 41.5 / 3 |
 
 ## Files
 
