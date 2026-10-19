@@ -47,6 +47,9 @@ scripts/riscv-tests.sh -o results.txt <isa dir> 'rv32ui-p-*'   # or name them
 ```
 
 The tests must be built for RV32 (`./configure --with-xlen=32` in riscv-tests).
+On the Arty A7-35, 92 of the 95 pass. Three fail by design of this setup:
+`rv32ui-p-fence_i` (fetches and data use separate memories),
+`rv32ui-p-ma_data` (no misaligned access) and `rv32mi-p-pmpaddr` (no PMP).
 
 The core's Debug Module is reached the same way:
 

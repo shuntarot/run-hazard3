@@ -16,7 +16,7 @@
 
 set -u
 
-DEFAULT="rv32ui-p-* rv32um-p-* rv32ua-p-* rv32uc-p-* rv32mi-p-*"
+DEFAULT="rv32ui-p-* rv32um-p-* rv32ua-p-* rv32uc-p-* rv32mi-p-* rv32uzbb-p-*"
 
 timeout=60
 out=""
