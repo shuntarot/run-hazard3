@@ -62,6 +62,24 @@ hio cpu halt               # also: step, regs, resume, reset --halt, info
 The console has a debug prompt as well (Ctrl-A c); [doc/debug.md](doc/debug.md)
 walks through a session.
 
+## NuttX
+
+`nuttx/` holds a chip (`chips/hazard3`) and a board (`boards/run-hazard3`) for
+[NuttX](https://nuttx.apache.org/), kept out of the NuttX tree. The `nsh`
+configuration runs the NuttShell on the RTT console, with `ostest`.
+
+```bash
+export NUTTX_DIR=<nuttx checkout>   # with nuttx-apps at ../apps
+nuttx/build.sh                      # CONFIG=nsh by default
+hio cpu boot $NUTTX_DIR/nuttx
+```
+
+`build.sh` needs `riscv32-unknown-elf-gcc` on PATH and kconfiglib (or
+kconfig-frontends). Only the entry stub and the RTT block are in `tcm`; the
+kernel is in the DRAM, where the core runs at about 1.7 MIPS: each instruction
+is fetched through the memory controller. `ostest` takes a long time for that
+reason.
+
 ## Size
 
 LUT and FF counts, block RAM in 36 Kb blocks, after place and route. The
@@ -88,6 +106,7 @@ LUTs and 130 FFs to the core on the Arty.
 | `asm/smoke.S` | the test program (`make asm`) |
 | `bsp/` | startup, console (RTT, or the UART on QEMU) and exit for the firmware |
 | `apps/` | the firmware: `hello`, `console`, `semihost` |
+| `nuttx/` | NuttX for this core: chip, board, and `build.sh` |
 | `sim/` | the DUT alone in Verilator (`make sim`) |
 
 Put paths for your machine in `local.mk`; see `Makefile`.

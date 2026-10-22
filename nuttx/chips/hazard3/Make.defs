@@ -1,0 +1,12 @@
+############################################################################
+# SPDX-License-Identifier: Apache-2.0
+#
+# Make.defs: Hazard3 on run-hazard3
+############################################################################
+
+include common/Make.defs
+
+CHIP_ASRCS = hazard3_head.S
+
+CHIP_CSRCS  = hazard3_start.c hazard3_irq.c hazard3_irq_dispatch.c
+CHIP_CSRCS += hazard3_timerisr.c hazard3_console.c

@@ -1,0 +1,120 @@
+/****************************************************************************
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * scripts/ld.script: Hazard3 on run-hazard3
+ *
+ * The core starts at 0x80000000, in 64 KB of FPGA memory (tcm). Only the
+ * entry stub and the RTT block live there; the kernel does not fit, so it
+ * goes into the DRAM (dmem) from CONFIG_RAM_START, followed by the heap.
+ * `hio cpu boot` loads each part into the memory that covers it.
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#define TCM_START   0x80000000
+#define TCM_END     0x80010000
+
+SECTIONS
+{
+  .head TCM_START :
+    {
+      KEEP(*(.text.head))
+    }
+
+  /* The RTT control block and buffers (CONFIG_SEGGER_RTT_SECTION). In tcm
+   * the host always reaches them through its window, and they are loaded
+   * as zeros, so a block left over from an earlier run is not mistaken for
+   * this one's.
+   */
+
+  .rtt :
+    {
+      . = ALIGN(8);
+      KEEP(*(.rtt))
+    }
+
+  ASSERT(. <= TCM_END, "the entry stub and RTT do not fit in tcm")
+
+  . = CONFIG_RAM_START;
+
+  .text :
+    {
+      _stext = . ;
+      *(.text)
+      *(.text.*)
+      *(.gnu.warning)
+      *(.stub)
+      *(.glue_7)
+      *(.glue_7t)
+      *(.jcr)
+      *(.gnu.linkonce.t.*)
+      *(.init)
+      *(.fini)
+      _etext = . ;
+    }
+
+  .init_section :
+    {
+      _sinit = ABSOLUTE(.);
+      KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+      KEEP(*(.init_array .ctors))
+      _einit = ABSOLUTE(.);
+    }
+
+  .rodata :
+    {
+      _srodata = . ;
+      *(.rodata)
+      *(.rodata1)
+      *(.rodata.*)
+      *(.srodata .srodata.*)
+      *(.gnu.linkonce.r*)
+      _erodata = . ;
+    }
+
+  .tdata :
+    {
+      _stdata = ABSOLUTE(.);
+      *(.tdata .tdata.* .gnu.linkonce.td.*);
+      _etdata = ABSOLUTE(.);
+    }
+
+  .tbss :
+    {
+      _stbss = ABSOLUTE(.);
+      *(.tbss .tbss.* .gnu.linkonce.tb.* .tcommon);
+      _etbss = ABSOLUTE(.);
+    }
+
+  _eronly = ABSOLUTE(.);
+
+  .data :
+    {
+      _sdata = . ;
+      *(.data)
+      *(.data1)
+      *(.data.*)
+      *(.sdata .sdata.*)
+      *(.gnu.linkonce.d*)
+      . = ALIGN(4);
+      _edata = . ;
+    }
+
+  .bss :
+    {
+      _sbss = . ;
+      *(.bss)
+      *(.bss.*)
+      *(.sbss)
+      *(.sbss.*)
+      *(.gnu.linkonce.b*)
+      *(COMMON)
+      . = ALIGN(32);
+      _ebss = . ;
+    }
+
+  .debug_abbrev 0 : { *(.debug_abbrev) }
+  .debug_info 0 : { *(.debug_info) }
+  .debug_line 0 : { *(.debug_line) }
+  .comment 0 : { *(.comment) }
+}

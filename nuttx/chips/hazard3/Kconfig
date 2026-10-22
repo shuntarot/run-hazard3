@@ -1,0 +1,31 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Hazard3 on run-hazard3's harness. An out-of-tree chip, selected through
+# CONFIG_ARCH_CHIP_RISCV_CUSTOM. The build copies this file to
+# arch/dummy/Kconfig.
+#
+
+config ARCH_CHIP_RUN_HAZARD3
+	bool
+	default y if ARCH_CHIP_CUSTOM
+	select ARCH_RV32
+	select ARCH_RV_ISA_M
+	select ARCH_RV_ISA_A
+	select ARCH_RV_ISA_C
+	select ARCH_HAVE_MISALIGN_EXCEPTION
+	select ARCH_HAVE_DEBUG
+	select ONESHOT
+	select ONESHOT_COUNT
+	select ONESHOT_FAST_DIVISION
+	select ALARM_ARCH
+
+if ARCH_CHIP_RUN_HAZARD3
+
+config RUN_HAZARD3_MTIME_FREQ
+	int "mtime frequency (Hz)"
+	default 50000000
+	---help---
+		mtime counts the core clock, 50 MHz in run-hazard3.
+
+endif # ARCH_CHIP_RUN_HAZARD3

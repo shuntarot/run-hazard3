@@ -1,0 +1,8 @@
+# The defconfig with real paths, written by build.sh
+/build/
+# Written into the board directory by the NuttX build
+*.o
+*.a
+.depend
+Make.dep
+ld.script.tmp
