@@ -1,0 +1,53 @@
+diff --git a/drivers/segger/serial_rtt.c b/drivers/segger/serial_rtt.c
+index 6128c92c79..6c1831a1b1 100644
+--- a/drivers/segger/serial_rtt.c
++++ b/drivers/segger/serial_rtt.c
+@@ -28,6 +28,7 @@
+ #include <sys/types.h>
+ #include <syslog.h>
+ 
++#include <nuttx/irq.h>
+ #include <nuttx/kmalloc.h>
+ #include <nuttx/segger/rtt.h>
+ #include <nuttx/serial/serial.h>
+@@ -56,6 +57,7 @@ struct serial_rtt_s
+   int channel;
+   FAR char *up_buffer;
+   FAR char *down_buffer;
++  bool txbusy;
+ };
+ 
+ /****************************************************************************
+@@ -361,10 +363,32 @@ static void serial_rtt_dmarxfree(FAR struct uart_dev_s *dev)
+ 
+ static void serial_rtt_dmatxavail(FAR struct uart_dev_s *dev)
+ {
++  FAR struct serial_rtt_s *rtt = dev->priv;
++  irqstate_t flags;
++
++  /* Both the writer and the polling timer come here, and the timer runs in
++   * interrupt context. A timer that fires between the RTT write and the
++   * tail update would send the same bytes again, so it leaves a send in
++   * progress alone. Interrupts are not kept off for the send itself: it
++   * may block until the host reads.
++   */
++
++  flags = enter_critical_section();
++  if (rtt->txbusy)
++    {
++      leave_critical_section(flags);
++      return;
++    }
++
++  rtt->txbusy = true;
++  leave_critical_section(flags);
++
+   if (serial_rtt_txready(dev))
+     {
+       uart_xmitchars_dma(dev);
+     }
++
++  rtt->txbusy = false;
+ }
+ 
+ /****************************************************************************

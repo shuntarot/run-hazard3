@@ -38,6 +38,21 @@ ln -sf "$HERE/boards/run-hazard3/scripts/Make.defs" "$GEN/Make.defs"
 
 cd "$NUTTX_DIR"
 
+# Fixes this port needs until NuttX itself has them. Each is applied once:
+# one already in the tree is skipped.
+for p in "$HERE"/patches/*.patch; do
+    [ -e "$p" ] || continue
+    if git apply --reverse --check "$p" 2>/dev/null; then
+        continue
+    fi
+    git apply "$p" || {
+        echo "build.sh: $(basename "$p") does not apply to $NUTTX_DIR." >&2
+        echo "If this NuttX already has the fix in another form, delete the patch." >&2
+        exit 1
+    }
+    echo "build.sh: applied $(basename "$p")"
+done
+
 # A .config that exists is not necessarily a finished one: configure.sh leaves
 # it behind when it fails part way. The chip symbol only appears once the
 # Kconfig passes below have run, so test for that. Reconfigure when the

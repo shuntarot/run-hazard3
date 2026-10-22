@@ -75,7 +75,9 @@ hio cpu boot $NUTTX_DIR/nuttx
 ```
 
 `build.sh` needs `riscv32-unknown-elf-gcc` on PATH and kconfiglib (or
-kconfig-frontends). Only the entry stub and the RTT block are in `tcm`; the
+kconfig-frontends). It first applies `nuttx/patches/` to the NuttX tree: a fix
+to the RTT console that NuttX does not have yet (without it, some output
+lines appear twice). Only the entry stub and the RTT block are in `tcm`; the
 kernel is in the DRAM, where the core runs at about 1.7 MIPS: each instruction
 is fetched through the memory controller. `ostest` takes a long time for that
 reason.
