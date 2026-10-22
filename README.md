@@ -113,5 +113,6 @@ Put paths for your machine in `local.mk`; see `Makefile`.
 
 ## License
 
-MIT (`LICENSE`), except Hazard3 in `rtl/hazard3.v`, which is under the Apache
-License 2.0 (`rtl/LICENSE.Hazard3`).
+MIT or Apache-2.0, at your option (`LICENSE-MIT`, `LICENSE-APACHE`). Two parts
+are under the Apache License 2.0 only: Hazard3 in `rtl/hazard3.v`
+(`rtl/LICENSE.Hazard3`), and `nuttx/`, which is derived from NuttX.
