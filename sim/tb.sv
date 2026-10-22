@@ -15,7 +15,7 @@ module tb;
     localparam logic [31:0] DRAM_BASE = 32'h8001_0000;
     logic [31:0] tcm  [0:16383];
     logic [31:0] dmem [0:16383];
-    logic [31:0] want [0:12];
+    logic [31:0] want [0:14];
 
     logic [31:0] cycle = 0;
     logic        rst_n;
@@ -129,7 +129,7 @@ module tb;
         want[3]  = 32'hc0ffee42; want[4]  = 32'h000f45f6; want[5] = 32'h44332211;
         want[6]  = 32'h66665555; want[7]  = 32'h0000002a; want[8] = 32'h00000025;
         want[9]  = 32'h12345678; want[10] = 32'h12345678; want[11] = 32'h0;
-        want[12] = 32'hfeedface;
+        want[12] = 32'hfeedface; want[13] = 32'h80000003; want[14] = 32'h80000007;
     end
 
     always @(posedge clk) begin
@@ -147,7 +147,7 @@ module tb;
 
     always @(posedge clk) begin
         if (cycle == 3000) begin
-            for (i = 0; i < 13; i = i + 1) begin
+            for (i = 0; i < 15; i = i + 1) begin
                 if (i == 11) continue;
                 if (tcm[1024 + i] == want[i]) begin
                     $display("+%h %h", 8'(i * 4), tcm[1024 + i]);

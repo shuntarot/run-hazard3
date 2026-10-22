@@ -10,13 +10,19 @@ include (inline, "hazard3.v");
 /// `hns::ahb2axi` to an AXI4 port on the board's DRAM (`dmem`). Each address
 /// is in one memory only, so a store is seen by fetches.
 ///
+/// A timer answers at `CLINT`, laid out as the usual CLINT (and QEMU's virt
+/// machine): `msip` at +0x0, `mtimecmp` at +0x4000, `mtime` at +0xbff8.
+/// `mtime` counts the core clock, and stops while the hart is halted for the
+/// debugger, as in Hazard3's example SoC. It drives the timer and software
+/// interrupts.
+///
 /// The Debug Module (`hazard3_dm`) is reached on its DMI, an APB slave the
 /// harness drives. It runs on its own reset, which `hio reset` does not
 /// touch, so a halted hart and a halt-on-reset request survive it. The core
 /// is reset by the DUT reset or by the Debug Module (`ndmreset`), as in
 /// Hazard3's example SoC.
 ///
-/// Interrupts and power control are not used; they are tied off.
+/// The external interrupt and power control are not used; they are tied off.
 module hazard3_top (
     i_clk   : input clock          ,
     i_rst   : input reset_async_low,
@@ -41,8 +47,10 @@ module hazard3_top (
     // at TCM_END, and the harness refuses what falls outside it.
     dmem: modport $std::axi4_if::<$std::axi4_pkg::<32, 4, 1, 1, 1, 1, 1, 1>>::master,
 ) {
-    const BASE   : bit<32> = 32'h8000_0000;
-    const TCM_END: bit<32> = 32'h8001_0000;
+    const BASE     : bit<32> = 32'h8000_0000;
+    const TCM_END  : bit<32> = 32'h8001_0000;
+    const CLINT    : bit<32> = 32'h0200_0000;
+    const CLINT_END: bit<32> = 32'h0201_0000;
 
     // The core's AHB port.
     var haddr : logic<32>;
@@ -57,6 +65,18 @@ module hazard3_top (
     var d_htrans: logic<2> ;
     var d_hready: logic    ;
     var d_hrdata: logic<32>;
+
+    // The timer side, and the timer.
+    var c_sel   : logic    ; // the address phase is for the timer
+    var c_data  : logic    ; // the data phase is the timer's
+    var c_wr    : logic    ; // ... and is a write
+    var c_addr  : logic<16>;
+    var c_wstrb : logic<4> ;
+    var c_rdata : logic<32>;
+    var msip    : logic    ;
+    var mtime   : logic<64>;
+    var mtimecmp: logic<64>;
+    var mtip    : logic    ;
 
     var pwrup_req  : logic;
     var unblock_out: logic;
@@ -153,20 +173,20 @@ module hazard3_top (
         unblock_out               ,
         unblock_in   : unblock_out,
 
-        haddr          ,
-        hwrite         ,
-        htrans         ,
-        hsize          ,
-        hburst     : _ ,
-        hprot      : _ ,
-        hmastlock  : _ ,
-        hmaster    : _ ,
-        hexcl      : _ ,
-        hready         ,
-        hresp      : '0,
-        hexokay    : '1, // a single master: no global monitor
-        hwdata         ,
-        hrdata         ,
+        haddr        ,
+        hwrite       ,
+        htrans       ,
+        hsize        ,
+        hburst   : _ ,
+        hprot    : _ ,
+        hmastlock: _ ,
+        hmaster  : _ ,
+        hexcl    : _ ,
+        hready       ,
+        hresp    : '0,
+        hexokay  : '1, // a single master: no global monitor
+        hwdata       ,
+        hrdata       ,
 
         fence_i_vld: _ ,
         fence_d_vld: _ ,
@@ -194,11 +214,11 @@ module hazard3_top (
         dbg_sbus_wdata            : '0              ,
         dbg_sbus_rdata            : _               ,
 
-        mhartid_val: '0,
-        eco_version: '0,
-        irq        : '0,
-        soft_irq   : '0,
-        timer_irq  : '0,
+        mhartid_val: '0  ,
+        eco_version: '0  ,
+        irq        : '0  ,
+        soft_irq   : msip,
+        timer_irq  : mtip,
     );
 
     // The split. `t_` is the block RAM side. A read there answers in its
@@ -217,10 +237,11 @@ module hazard3_top (
 
     always_comb {
         t_sel     = haddr >= BASE && haddr <: TCM_END;
+        c_sel     = haddr >= CLINT && haddr <: CLINT_END;
         t_writing = t_data && t_wr && !t_written;
         t_ready   = !(t_writing && htrans[1] && !hwrite && t_sel);
-        hready    = if t_data ? t_ready : d_hready;
-        hrdata    = if t_data ? i_tcm_rdata : d_hrdata;
+        hready    = if t_data ? t_ready : if c_data ? 1'b1 : d_hready;
+        hrdata    = if t_data ? i_tcm_rdata : if c_data ? c_rdata : d_hrdata;
         accept    = hready && htrans[1];
 
         o_tcm_we    = t_writing;
@@ -229,7 +250,7 @@ module hazard3_top (
         o_tcm_re    = !t_writing && accept && t_sel && !hwrite;
         o_tcm_addr  = if t_writing ? t_waddr : haddr;
 
-        d_htrans = if accept && !t_sel ? htrans : 2'b00;
+        d_htrans = if accept && !t_sel && !c_sel ? htrans : 2'b00;
     }
 
     always_ff (i_clk, i_rst) {
@@ -248,6 +269,69 @@ module hazard3_top (
         } else if t_writing {
             t_written = 1;
         }
+    }
+
+    // The timer. Its data phase answers at once: a read from the registers,
+    // a write into them.
+    always_comb {
+        case c_addr {
+            16'h0000: c_rdata = {31'b0, msip};
+            16'h4000: c_rdata = mtimecmp[31:0];
+            16'h4004: c_rdata = mtimecmp[63:32];
+            16'hbff8: c_rdata = mtime[31:0];
+            16'hbffc: c_rdata = mtime[63:32];
+            default : c_rdata = 0;
+        }
+    }
+
+    always_ff (i_clk, i_rst) {
+        if_reset {
+            c_data   = 0;
+            c_wr     = 0;
+            c_addr   = 0;
+            c_wstrb  = 0;
+            msip     = 0;
+            mtime    = 0;
+            mtimecmp = '1;
+            mtip     = 0;
+        } else {
+            if hready {
+                c_data  = accept && c_sel;
+                c_wr    = hwrite;
+                c_addr  = {haddr[15:2], 2'b00};
+                c_wstrb = strobe(hsize, haddr[1:0]);
+            }
+            if c_data && c_wr && c_addr == 16'hbff8 {
+                mtime[31:0] = merge(mtime[31:0], hwdata, c_wstrb);
+            } else if c_data && c_wr && c_addr == 16'hbffc {
+                mtime[63:32] = merge(mtime[63:32], hwdata, c_wstrb);
+            } else if !halted {
+                mtime += 1;
+            }
+            if c_data && c_wr && c_addr == 16'h4000 {
+                mtimecmp[31:0] = merge(mtimecmp[31:0], hwdata, c_wstrb);
+            }
+            if c_data && c_wr && c_addr == 16'h4004 {
+                mtimecmp[63:32] = merge(mtimecmp[63:32], hwdata, c_wstrb);
+            }
+            if c_data && c_wr && c_addr == 16'h0000 && c_wstrb[0] {
+                msip = hwdata[0];
+            }
+            mtip = mtime >= mtimecmp;
+        }
+    }
+
+    // A write of `wdata` over `word`, where its byte strobes are set.
+    function merge (
+        word : input logic<32>,
+        wdata: input logic<32>,
+        strb : input logic<4> ,
+    ) -> logic<32> {
+        var out: logic<32>;
+        for i in 0..4 {
+            out[i * 8+:8] = if strb[i] ? wdata[i * 8+:8] : word[i * 8+:8];
+        }
+        return out;
     }
 
     function strobe (

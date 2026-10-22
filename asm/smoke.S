@@ -12,8 +12,11 @@
 //   +0x24: a store read back by the very next load (0x12345678), copied to +0x28
 //   +0x2c: counter, incremented forever
 //   +0x30: a word stored to DRAM (dmem, 0x8001_0000) and loaded back (0xfeedface)
+//   +0x34: mcause of the software interrupt raised through msip (0x80000003)
+//   +0x38: mcause of the timer interrupt raised through mtimecmp (0x80000007)
 #define RESULT 0x80001000
 #define DRAM   0x80010000
+#define CLINT  0x02000000
 
 .section .text.start, "ax", @progbits
 .globl _start
@@ -61,11 +64,59 @@ _start:
   sw   t1, 0(t2)
   lw   t1, 0(t2)
   sw   t1, 0x30(t0)
+
+  // Interrupts. The handler records mcause and turns its source off.
+  la   t1, trap
+  csrw mtvec, t1
+  li   t1, 0x88            // mie: MSIE, MTIE
+  csrw mie, t1
+  csrsi mstatus, 8         // MIE
+  li   t2, CLINT
+  li   t1, 1
+  sw   t1, 0(t2)           // msip: taken at once
+2:
+  lw   t1, 0x34(t0)
+  beqz t1, 2b
+  // mtimecmp = mtime + 200. The high word goes to all ones first, so the
+  // compare does not match half-written.
+  li   t2, CLINT + 0xbff8
+  lw   t1, 0(t2)
+  lw   t3, 4(t2)
+  addi t4, t1, 200
+  sltu t1, t4, t1
+  add  t3, t3, t1
+  li   t2, CLINT + 0x4000
+  li   t1, -1
+  sw   t1, 4(t2)
+  sw   t4, 0(t2)
+  sw   t3, 4(t2)
+3:
+  wfi
+  lw   t1, 0x38(t0)
+  beqz t1, 3b
+
   li   t1, 0
 1:
   addi t1, t1, 1
   sw   t1, 0x2c(t0)
   j    1b
+
+.balign 4
+trap:
+  csrr s0, mcause
+  li   s1, 0x80000003
+  bne  s0, s1, 4f
+  sw   s0, 0x34(t0)
+  li   s1, CLINT
+  sw   zero, 0(s1)         // msip = 0
+  mret
+4:
+  sw   s0, 0x38(t0)
+  li   s1, CLINT + 0x4000
+  li   s2, -1
+  sw   s2, 4(s1)           // mtimecmp = all ones: no more
+  sw   s2, 0(s1)
+  mret
 
 .section .rodata
 .balign 4

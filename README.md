@@ -5,7 +5,9 @@ with Zbb, Zifencei and the counters) on a Digilent Arty A7-35 with
 [veryl-harness](https://github.com/shuntarot/uharness).
 The core's single bus port sees one address space: 64 KB of FPGA memory
 from 0x8000_0000 (`tcm`), and the board's DDR3 right after it (`dmem`, through
-`hns::ahb2axi`).
+`hns::ahb2axi`). A timer laid out as the usual CLINT answers at 0x0200_0000:
+`msip` at +0x0, `mtimecmp` at +0x4000, and `mtime` at +0xbff8, which counts
+the 50 MHz core clock.
 
 ## Requirements
 
@@ -69,15 +71,18 @@ in its PS and is not counted).
 
 | Target | Clock | Core LUT / FF / BRAM / DSP | Design LUT / FF / BRAM / DSP |
 |---|---|---|---|
-| `digilent/arty-a7-35` | 50 MHz | 3,153 / 1,069 / 1 / 0 | 9,515 / 6,695 / 17 / 0 |
+| `digilent/arty-a7-35` | 50 MHz | 3,300 / 1,202 / 1 / 0 | 9,632 / 6,828 / 17 / 0 |
 | `digilent/pynq-z1` | 50 MHz | 3,246 / 1,069 / 1 / 0 | 4,171 / 2,213 / 17 / 0 |
 | `xilinx/vcu118` | 50 MHz | 3,329 / 1,133 / 0 / 0 | 22,674 / 23,417 / 41.5 / 3 |
+
+The PYNQ-Z1 and VCU118 rows are from before the timer, which adds about 150
+LUTs and 130 FFs to the core on the Arty.
 
 ## Files
 
 | | |
 |---|---|
-| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with one bus port split into a memory port and an AXI4 port, and its Debug Module |
+| `rtl/hazard3_top.veryl` | the DUT: Hazard3 with one bus port split into a memory port, an AXI4 port and the timer, and its Debug Module |
 | `rtl/hazard3.v` | Hazard3 and its Debug Module in one file (`make hazard3`) |
 | `Harness.toml` | where each port goes |
 | `asm/smoke.S` | the test program (`make asm`) |

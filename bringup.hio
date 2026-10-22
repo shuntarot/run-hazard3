@@ -12,7 +12,7 @@ read dmem_calib
 echo == load the program while the core is held ==
 reset --hold
 load tcm asm/smoke.elf --verify
-write tcm 0x1000 0 0 0 0 0 0 0 0 0 0 0 0 0
+write tcm 0x1000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 write dmem 0x0 0
 reset --release
 sleep 100
@@ -35,6 +35,10 @@ echo == through the DRAM ==
 # 0xfeedface, stored to 0x8001_0000 and loaded back; then the same word in dmem
 read tcm 0x1030 1
 read dmem 0x0 1
+
+echo == interrupts ==
+# 0x80000003 (software, through msip), 0x80000007 (timer, through mtimecmp)
+read tcm 0x1034 2
 
 echo == nothing out of range ==
 read tcm_oor
