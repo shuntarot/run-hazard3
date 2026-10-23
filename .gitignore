@@ -6,6 +6,7 @@
 /.build/
 *.sv
 !/sim/tb.sv
+!/sim/tb_picoruby.sv
 *.sv.map
 *.f
 
@@ -13,6 +14,13 @@
 /sim/obj_dir/
 /sim/smoke.bin
 /sim/smoke.hex
+/sim/obj_dir_picoruby/
+/sim/picoruby_*.bin
+/sim/picoruby_*.hex
+
+# mruby/c firmware
+/picoruby/build/
+/picoruby/picoruby.elf
 
 # Paths for this machine (see Makefile)
 /local.mk

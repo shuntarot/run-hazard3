@@ -82,6 +82,24 @@ kernel is in the DRAM, where the core runs at about 1.7 MIPS: each instruction
 is fetched through the memory controller. `ostest` takes a long time for that
 reason.
 
+## mruby/c
+
+`picoruby/` runs a Ruby script on the core with [mruby/c](https://github.com/mrubyc/mrubyc),
+the VM of PicoRuby's FemtoRuby. It is bare metal: the entry stub is in `tcm`,
+the rest (about 135 KB of code, and a 256 KB heap) is in the DRAM.
+
+```bash
+make -C picoruby PICORUBY=<picoruby checkout>   # builds picoruby.elf from hello.rb
+hio cpu boot picoruby/picoruby.elf
+make -C sim picoruby                            # the same in Verilator, no board
+```
+
+The checkout needs its host compiler first:
+`MRUBY_CONFIG=build_config/picorbc.rb rake`. `SCRIPT=<file.rb>` picks the
+script. The core has no interrupts for the timer, so the scheduler ticks only
+when every task is waiting; a busy task is not preempted. The core cannot do
+misaligned accesses, which is why the build sets `MRBC_REQUIRE_32BIT_ALIGNMENT`.
+
 ## Size
 
 LUT and FF counts, block RAM in 36 Kb blocks, after place and route. The
@@ -109,6 +127,7 @@ LUTs and 130 FFs to the core on the Arty.
 | `bsp/` | startup, console (RTT, or the UART on QEMU) and exit for the firmware |
 | `apps/` | the firmware: `hello`, `console`, `semihost` |
 | `nuttx/` | NuttX for this core: chip, board, and `build.sh` |
+| `picoruby/` | mruby/c firmware: startup, RTT, HAL and a Makefile |
 | `sim/` | the DUT alone in Verilator (`make sim`) |
 
 Put paths for your machine in `local.mk`; see `Makefile`.
