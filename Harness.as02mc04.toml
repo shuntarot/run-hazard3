@@ -1,0 +1,32 @@
+# Harness.toml for the Alibaba AS02MC04, over PCIe:
+#
+#   veryl harness gen --config Harness.as02mc04.toml --target alibaba/as02mc04 --transport pcie
+
+[dut]
+module = "hazard3_top"
+
+[clock.i_clk]
+freq_mhz = 50
+
+[bundle.tcm]
+backing    = "bram"
+latency    = 1
+depth      = 16384
+addressing = "byte"
+dut_base   = 0x8000_0000
+ports      = { addr = "o_tcm_addr", re = "o_tcm_re", rdata = "i_tcm_rdata",
+               wdata = "o_tcm_wdata", we = "o_tcm_we", wstrb = "o_tcm_wstrb" }
+
+# The board has no DRAM: 1 MB of block RAM instead.
+[bundle.dmem]
+backing  = "bram"
+depth    = "256K"
+dut_base = 0x8001_0000
+ports    = ["dmem"]
+
+[bundle.dmi]
+backing = "dmi"
+reset   = "i_dm_rst"
+
+[pcie]
+bar_bytes = "4M"

@@ -1,13 +1,10 @@
 # hazard3 -- hio run bringup.hio
 #
 # Hold the core in reset, put asm/smoke.elf in tcm, release it, and read what
-# it wrote at 0x8000_1000 (tcm) and 0x8001_0000 (dmem, the DRAM).
+# it wrote at 0x8000_1000 (tcm) and 0x8001_0000 (dmem).
 
 echo == identity ==
 id
-# The DRAM controller calibrates after configuration; nothing reaches dmem
-# before 1.
-read dmem_calib
 
 echo == load the program while the core is held ==
 reset --hold
@@ -31,7 +28,7 @@ read tcm 0x102c 1
 sleep 100
 read tcm 0x102c 1
 
-echo == through the DRAM ==
+echo == through dmem ==
 # 0xfeedface, stored to 0x8001_0000 and loaded back; then the same word in dmem
 read tcm 0x1030 1
 read dmem 0x0 1
