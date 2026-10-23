@@ -94,6 +94,12 @@ hio cpu boot picoruby/picoruby.elf
 make -C sim picoruby                            # the same in Verilator, no board
 ```
 
+`examples/` has a benchmark (`SCRIPTS=examples/bench.rb`) and two-task tests
+(`SCRIPTS="examples/taska.rb examples/taskb.rb"`); `cycles`, `instret` and `khz`
+are methods of the firmware for timing. On the Arty the core runs this at about
+1.4 MIPS, and a block call costs about 1,300 instructions (a `while` iteration
+about 260), because every instruction comes from the DRAM (CPI about 35).
+
 The checkout needs its host compiler first:
 `MRUBY_CONFIG=build_config/picorbc.rb rake`. `SCRIPT=<file.rb>` picks the
 script. The core has no interrupts for the timer, so the scheduler ticks only

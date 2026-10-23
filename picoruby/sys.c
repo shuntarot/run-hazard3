@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/stat.h>
 
 #include "rtt.h"
@@ -34,4 +35,39 @@ void _exit(int code)
 {
   rtt_exit(code);
   for (;;) {}
+}
+
+/* newlib-nano's memcpy and memset go a byte at a time, and the core fetches
+ * every byte through the memory controller, so they were a third of the
+ * run time of mruby/c. These copy a word at a time when both sides line up.
+ * A word access that does not line up would trap, so they never try one. */
+
+void *memcpy(void *dst, const void *src, size_t n)
+{
+  unsigned char *d = dst;
+  const unsigned char *s = src;
+
+  if ((((uintptr_t)d ^ (uintptr_t)s) & 3) == 0) {
+    while (n && ((uintptr_t)d & 3)) { *d++ = *s++; n--; }
+    uint32_t *dw = (uint32_t *)d;
+    const uint32_t *sw = (const uint32_t *)s;
+    while (n >= 4) { *dw++ = *sw++; n -= 4; }
+    d = (unsigned char *)dw;
+    s = (const unsigned char *)sw;
+  }
+  while (n--) *d++ = *s++;
+  return dst;
+}
+
+void *memset(void *dst, int c, size_t n)
+{
+  unsigned char *d = dst;
+  uint32_t w = (unsigned char)c * 0x01010101u;
+
+  while (n && ((uintptr_t)d & 3)) { *d++ = (unsigned char)c; n--; }
+  uint32_t *dw = (uint32_t *)d;
+  while (n >= 4) { *dw++ = w; n -= 4; }
+  d = (unsigned char *)dw;
+  while (n--) *d++ = (unsigned char)c;
+  return dst;
 }

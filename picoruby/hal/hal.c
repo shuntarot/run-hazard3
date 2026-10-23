@@ -3,17 +3,27 @@
 #include "hal.h"
 #include "../rtt.h"
 
-/* mtime counts the 50 MHz core clock. */
-#define MTIME      (*(volatile uint32_t *)0x0200bff8)
-#define TICK_CLKS  50000u   /* 1 ms */
+/* Time is the cycle counter, a CSR of every core, so the same HAL runs
+ * wherever the core does. CPU_HZ is the core clock of the harness. */
+#ifndef CPU_HZ
+#define CPU_HZ     50000000u
+#endif
+#define TICK_CLKS  (CPU_HZ / 1000u)   /* 1 ms */
+
+static inline uint32_t cycle_lo(void)
+{
+  uint32_t c;
+  __asm__ volatile("csrr %0, mcycle" : "=r"(c));
+  return c;
+}
 
 /* Waits for the next tick, then runs it. */
 void hal_idle(void)
 {
   static uint32_t next;
-  uint32_t now = MTIME;
+  uint32_t now = cycle_lo();
   if (next == 0) next = now;
-  while ((int32_t)(MTIME - next) < 0) {}
+  while ((int32_t)(cycle_lo() - next) < 0) {}
   next += TICK_CLKS;
   mrbc_tick();
 }

@@ -10,6 +10,9 @@ _start:
     .option pop
     la   sp, __stack_top
 
+    # Let the cycle and instruction counters run; the HAL's clock is one.
+    csrw mcountinhibit, zero
+
     # DRAM keeps what an earlier run left in it.
     la   t0, __bss_start
     la   t1, __bss_end
