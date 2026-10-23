@@ -35,7 +35,7 @@ picoruby: obj_dir/Vtb_picoruby $(PICO)
 	$(PICO_CROSS)objcopy -O binary -j .text -j .rodata -j .data $(PICO) picoruby_dmem.bin
 	python3 -I -c "$(HEXPY)" picoruby_tcm.bin > picoruby_tcm.hex
 	python3 -I -c "$(HEXPY)" picoruby_dmem.bin > picoruby_dmem.hex
-	obj_dir/Vtb_picoruby $(PICO_ARGS) +cb=$$($(PICO_CROSS)nm $(PICO) | awk '$$3 == "cb" {print $$1}')
+	obj_dir/Vtb_picoruby $(PICO_ARGS) +cb=$$($(PICO_CROSS)nm $(PICO) | awk '$$3 == "_SEGGER_RTT" {print $$1}')
 
 obj_dir/Vtb_picoruby: tb_picoruby.sv $(SV)
 	$(VERILATOR) --binary --timing -Wno-fatal -Wno-lint -Wno-style \
