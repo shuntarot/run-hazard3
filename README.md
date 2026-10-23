@@ -85,8 +85,8 @@ reason.
 ## mruby/c
 
 `picoruby/` runs a Ruby script on the core with [mruby/c](https://github.com/mrubyc/mrubyc),
-the VM of PicoRuby's FemtoRuby. It is bare metal: the entry stub is in `tcm`,
-the rest (about 135 KB of code, and a 256 KB heap) is in the DRAM.
+the VM of PicoRuby's FemtoRuby. It is bare metal: the entry stub and the hot code are in `tcm`,
+the rest (the code that does not fit in `tcm`, and a 256 KB heap) is in the DRAM.
 
 ```bash
 make -C picoruby PICORUBY=<picoruby checkout>   # builds picoruby.elf from hello.rb
@@ -96,13 +96,16 @@ make -C sim picoruby                            # the same in Verilator, no boar
 
 `examples/` has a benchmark (`SCRIPTS=examples/bench.rb`) and two-task tests
 (`SCRIPTS="examples/taska.rb examples/taskb.rb"`); `cycles`, `instret` and `khz`
-are methods of the firmware for timing. On the Arty the core runs this at about
-1.4 MIPS, and a block call costs about 1,300 instructions (a `while` iteration
-about 260), because every instruction comes from the DRAM (CPI about 35).
+are methods of the firmware for timing. On the Arty the core runs this at
+about 5.5 MIPS (CPI about 9): the VM, the
+allocator and the other code that runs most are in `tcm`, which answers in one
+cycle (`link.ld` lists them). With all of it in the DRAM it was CPI 35, about
+four times slower. A block call costs about 1,300 instructions, a `while`
+iteration about 260. What is left is data: the stack and the heap are in the DRAM.
 
 The checkout needs its host compiler first:
-`MRUBY_CONFIG=build_config/picorbc.rb rake`. `SCRIPT=<file.rb>` picks the
-script. The core has no interrupts for the timer, so the scheduler ticks only
+`MRUBY_CONFIG=build_config/picorbc.rb rake`. `SCRIPTS="<a.rb> <b.rb>"` picks the
+scripts (up to four tasks). The core has no interrupts for the timer, so the scheduler ticks only
 when every task is waiting; a busy task is not preempted. The core cannot do
 misaligned accesses, which is why the build sets `MRBC_REQUIRE_32BIT_ALIGNMENT`.
 

@@ -31,7 +31,7 @@ HEXPY     = import sys; b = open(sys.argv[1], 'rb').read(); b += bytes(-len(b) %
 	print('\n'.join('%08x' % int.from_bytes(b[i:i + 4], 'little') for i in range(0, len(b), 4)))
 
 picoruby: obj_dir/Vtb_picoruby $(PICO)
-	$(PICO_CROSS)objcopy -O binary -j .head $(PICO) picoruby_tcm.bin
+	$(PICO_CROSS)objcopy -O binary -j .head -j .tcm $(PICO) picoruby_tcm.bin
 	$(PICO_CROSS)objcopy -O binary -j .text -j .rodata -j .data $(PICO) picoruby_dmem.bin
 	python3 -I -c "$(HEXPY)" picoruby_tcm.bin > picoruby_tcm.hex
 	python3 -I -c "$(HEXPY)" picoruby_dmem.bin > picoruby_dmem.hex
