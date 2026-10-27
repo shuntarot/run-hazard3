@@ -28,5 +28,11 @@ ports    = ["dmem"]
 backing = "dmi"
 reset   = "i_dm_rst"
 
+# The last instructions the core retired; `hio trace` reads them.
+[bundle.rvfi]
+backing = "trace"
+format  = "rvfi"
+depth   = 1024
+
 [pcie]
 bar_bytes = "4M"

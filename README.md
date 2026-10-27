@@ -86,6 +86,7 @@ are from before the timer, which adds about 150 LUTs and 130 FFs.
 |---|---|
 | `rtl/hazard3_top.veryl` | the DUT: one bus split into a memory port, an AXI4 port and the timer |
 | `rtl/hazard3.v` | Hazard3 and its Debug Module in one file |
+| `rtl/hazard3_rvfi.v` | turns on Hazard3's RVFI port, which `hio trace` records |
 | `Harness.toml` | where each port goes |
 | `Harness.as02mc04.toml` | the same for an Alibaba AS02MC04 card, over PCIe (1 MB of block RAM for `dmem`) |
 | `bsp/`, `apps/` | the Rust firmware |

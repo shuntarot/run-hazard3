@@ -1,3 +1,7 @@
+// Hazard3's RVFI port outside riscv-formal: the core reports each
+// instruction it retires, for the harness trace.
+include (inline, "hazard3_rvfi.v");
+
 // Hazard3, flattened by scripts/flatten.py
 include (inline, "hazard3.v");
 
@@ -42,6 +46,22 @@ module hazard3_top (
     o_tcm_wstrb: output logic<4> ,
     o_tcm_wdata: output logic<32>,
     i_tcm_rdata: input  logic<32>,
+
+    // Each retired instruction (RVFI), for `backing = "trace"`.
+    o_rvfi_valid    : output logic    ,
+    o_rvfi_pc_rdata : output logic<32>,
+    o_rvfi_pc_wdata : output logic<32>,
+    o_rvfi_insn     : output logic<32>,
+    o_rvfi_trap     : output logic    ,
+    o_rvfi_intr     : output logic    ,
+    o_rvfi_mode     : output logic<2> ,
+    o_rvfi_rd_addr  : output logic<5> ,
+    o_rvfi_rd_wdata : output logic<32>,
+    o_rvfi_mem_addr : output logic<32>,
+    o_rvfi_mem_rmask: output logic<4> ,
+    o_rvfi_mem_wmask: output logic<4> ,
+    o_rvfi_mem_rdata: output logic<32>,
+    o_rvfi_mem_wdata: output logic<32>,
 
     // The core's own addresses. `dut_base` in Harness.toml places the DRAM
     // at TCM_END, and the harness refuses what falls outside it.
@@ -219,6 +239,21 @@ module hazard3_top (
         irq        : '0  ,
         soft_irq   : msip,
         timer_irq  : mtip,
+
+        rvfi_valid    : o_rvfi_valid    ,
+        rvfi_pc_rdata : o_rvfi_pc_rdata ,
+        rvfi_pc_wdata : o_rvfi_pc_wdata ,
+        rvfi_insn     : o_rvfi_insn     ,
+        rvfi_trap     : o_rvfi_trap     ,
+        rvfi_intr     : o_rvfi_intr     ,
+        rvfi_mode     : o_rvfi_mode     ,
+        rvfi_rd_addr  : o_rvfi_rd_addr  ,
+        rvfi_rd_wdata : o_rvfi_rd_wdata ,
+        rvfi_mem_addr : o_rvfi_mem_addr ,
+        rvfi_mem_rmask: o_rvfi_mem_rmask,
+        rvfi_mem_wmask: o_rvfi_mem_wmask,
+        rvfi_mem_rdata: o_rvfi_mem_rdata,
+        rvfi_mem_wdata: o_rvfi_mem_wdata,
     );
 
     // The split. `t_` is the block RAM side. A read there answers in its
