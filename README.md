@@ -73,12 +73,12 @@ is the DUT alone; the design adds the harness and the memory behind it.
 
 | Target | Clock | Core LUT / FF / BRAM / DSP | Design LUT / FF / BRAM / DSP |
 |---|---|---|---|
-| `digilent/arty-a7-35` | 50 MHz | 3,300 / 1,202 / 1 / 0 | 9,632 / 6,828 / 17 / 0 |
-| `digilent/pynq-z1` | 50 MHz | 3,246 / 1,069 / 1 / 0 | 4,171 / 2,213 / 17 / 0 |
-| `xilinx/vcu118` | 50 MHz | 3,329 / 1,133 / 0 / 0 | 22,674 / 23,417 / 41.5 / 3 |
+| `digilent/arty-a7-35` | 50 MHz | 3,611 / 1,572 / 1 / 0 | 10,377 / 7,738 / 25 / 0 |
+| `digilent/pynq-z1` | 50 MHz | 3,489 / 1,572 / 1 / 0 | 4,820 / 3,256 / 25 / 0 |
+| `xilinx/vcu118` | 50 MHz | 3,598 / 1,636 / 0 / 0 | 23,364 / 24,460 / 49.5 / 3 |
 
-The PYNQ-Z1's DRAM is in the PS and not counted. The PYNQ-Z1 and VCU118 rows
-are from before the timer, which adds about 150 LUTs and 130 FFs.
+The PYNQ-Z1's DRAM is in the PS and not counted. The trace ring
+(`[bundle.rvfi]`, 1024 records) takes 8 of the BRAM blocks.
 
 ## Files
 
