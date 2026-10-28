@@ -38,3 +38,5 @@ reset   = "i_dm_rst"
 backing = "trace"
 format  = "rvfi"
 depth   = 1024
+# What `hio trace start --when` may test.
+trigger = ["o_rvfi_pc_rdata", "o_rvfi_trap", "o_rvfi_mem_addr"]
