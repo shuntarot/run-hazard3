@@ -4,9 +4,24 @@ Runs the [Hazard3](https://github.com/Wren6991/Hazard3) RISC-V core (RV32IMAC,
 Zbb, Zifencei, counters, Debug Module) on a Digilent Arty A7-35 with
 [veryl-harness](https://github.com/shuntarot/uharness).
 
-One address space: 64 KB of FPGA memory from 0x8000_0000 (`tcm`), the board's
-DDR3 right after it (`dmem`), and a CLINT-style timer at 0x0200_0000
-(`mtime` counts the 50 MHz core clock).
+The host loads a program with `hio` and controls the core through its Debug
+Module. The program's console is RTT, in memory that the host also reads.
+
+## Address map
+
+What a program sees.
+
+| Address | Size | Region | Backed by |
+|---|---|---|---|
+| `0x0200_0000` – `0x0200_FFFF` | 64 KB | Timer, laid out as a CLINT: `msip` at +0x0, `mtimecmp` at +0x4000, `mtime` at +0xBFF8 | registers in the DUT (`mtime` counts the 50 MHz core clock) |
+| `0x8000_0000` – `0x8000_FFFF` | 64 KB | `tcm`: the reset vector, and code | FPGA block RAM (one cycle) |
+| `0x8001_0000` – `0x9000_FFFF` | 256 MB | `dmem`: data, the stack, the RTT console | the board's DRAM |
+
+Nothing else is mapped: the harness refuses such an access and counts it in
+`dmem_oor`, but the core does not get a bus error. There is no cache, so the
+host sees memory as the core does. The Debug Module is not on this bus; the
+host reaches it on a port of its own. On the AS02MC04
+(`Harness.as02mc04.toml`), `dmem` is 1 MB of block RAM.
 
 ## Requirements
 
