@@ -48,6 +48,7 @@ leaves). If `gen` wrote somewhere other than `hns/`, change `HIO_REGS` in
 cargo run -p hello
 cargo run -p console
 cargo run-emu -p console   # the same on QEMU
+cargo run --release -p memlat   # load latency; also membw, issue
 ```
 
 The core's Debug Module: `hio cpu halt` (also `step`, `regs`, `resume`);
@@ -79,7 +80,7 @@ hio cpu boot picoruby/picoruby.elf
 make -C sim picoruby                            # the same in Verilator
 ```
 
-Speed and test results: [doc/performance.md](doc/performance.md).
+Speed, the benchmarks and test results: [doc/performance.md](doc/performance.md).
 
 ## Size
 

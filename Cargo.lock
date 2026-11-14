@@ -39,6 +39,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "issue"
+version = "0.1.0"
+dependencies = [
+ "hazard3-bsp",
+]
+
+[[package]]
+name = "membw"
+version = "0.1.0"
+dependencies = [
+ "hazard3-bsp",
+]
+
+[[package]]
+name = "memlat"
+version = "0.1.0"
+dependencies = [
+ "hazard3-bsp",
+]
+
+[[package]]
 name = "pastey"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

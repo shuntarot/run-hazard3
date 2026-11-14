@@ -67,9 +67,12 @@ pub fn exit(code: u8) -> ! {
     }
 }
 
-/// Sets the console up before `main`, so a panic in setup still has one.
+/// Starts the counters and sets the console up before `main`, so a panic in
+/// setup still has one.
 #[riscv_rt::post_init]
 unsafe fn post_init(_hartid: usize) {
+    // Hazard3 resets with mcycle and minstret stopped (mcountinhibit).
+    core::arch::asm!("csrw mcountinhibit, zero");
     console::init();
 }
 
